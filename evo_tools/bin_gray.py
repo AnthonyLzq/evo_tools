@@ -1,4 +1,5 @@
 from random import randint
+from typing import List
 
 def binary_to_int(n: str) -> int:
   return int(n, 2)
@@ -36,7 +37,7 @@ def format_to_n_bits(b: str, bits: int) -> str:
 
   return b
 
-def binary_numbers_with_n_bits(n: int, bits = 8) -> list[str]:
+def binary_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
   numbers = []
 
   for i in range(n):
@@ -45,7 +46,7 @@ def binary_numbers_with_n_bits(n: int, bits = 8) -> list[str]:
 
   return numbers
 
-def gray_numbers_with_n_bits(n: int, bits = 8) -> list[str]:
+def gray_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
   numbers = []
 
   for i in range(n):

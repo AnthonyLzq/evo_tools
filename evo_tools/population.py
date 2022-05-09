@@ -1,15 +1,17 @@
 from math import log2
 from random import sample
+from typing import List, Tuple
+
 from evo_tools.custom import custom_range
 from evo_tools.bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray
 
 class PopulationMember():
   def __init__(
     self,
-    general_interval: list[str],
-    binaries: list[str],
-    grays: list[str],
-    positional_range: tuple[float | int, float | int]
+    general_interval: List[str],
+    binaries: List[str],
+    grays: List[str],
+    positional_range: Tuple[float | int, float | int]
   ) -> None:
     pos_x0, pos_xf = positional_range
     self.interval = general_interval[
@@ -25,11 +27,11 @@ class PopulationMember():
 class Population():
   def __init__(
     self,
-    ranges: list[tuple[float | int, float | int]],
+    ranges: List[Tuple[float | int, float | int]],
     decimals: int,
     print: bool = False
   ) -> None:
-    self.population_members: list[PopulationMember] = []
+    self.population_members: List[PopulationMember] = []
     lower_x0 = ranges[0][0]
     upper_xf = ranges[0][1]
     bits = 0
@@ -86,11 +88,11 @@ class Population():
         )
       )
 
-    self.intervals: list[list[str]] = []
-    self.binaries_intervals: list[list[str]] = []
-    self.grays_intervals: list[list[str]] = []
-    self.binaries: list[str] = []
-    self.grays: list[str] = []
+    self.intervals: List[List[str]] = []
+    self.binaries_intervals: List[List[str]] = []
+    self.grays_intervals: List[List[str]] = []
+    self.binaries: List[str] = []
+    self.grays: List[str] = []
 
     for member in self.population_members:
       self.intervals += [member.interval]
@@ -171,7 +173,7 @@ class Population():
 
     return self.binary_selection, self.gray_selection
 
-  def crossover(self, points: tuple[int, int], from_initial: bool = False):
+  def crossover(self, points: Tuple[int, int], from_initial: bool = False):
     if (self._print):
       print('\nCrossover:\n')
 
