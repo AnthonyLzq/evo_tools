@@ -1,7 +1,7 @@
 from math import log2
 from random import sample
-from custom import custom_range
-from bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray
+from evo_tools.custom import custom_range
+from evo_tools.bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray
 
 class PopulationMember():
   def __init__(
