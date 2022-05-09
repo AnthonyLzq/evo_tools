@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 DESCRIPTION = 'Evolutionary programming tools'
 LONG_DESCRIPTION = 'A package that allows you to implement evolutionary algorithms.'
 
@@ -16,6 +16,9 @@ setup(
   packages=find_packages(),
   install_requires=[],
   keywords=['python', 'evolutionary programming'],
+  project_urls={
+    "Source Code": "https://gitlab.com/AnthonyLzq/evo_tools"
+  },
   classifiers=[
     'Development Status :: 1 - Planning',
     'Intended Audience :: Developers',
