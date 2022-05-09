@@ -1,7 +1,7 @@
 from math import log2
 from random import sample
-import custom
-import bin_gray
+from custom import custom_range
+from bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray
 
 class PopulationMember():
   def __init__(
@@ -56,7 +56,7 @@ class Population():
       round(
         i,
         decimals
-      ) for i in custom.custom_range(
+      ) for i in custom_range(
         g_x0,
         g_xf + pow(10, -decimals),
         pow(10, -decimals)
@@ -69,8 +69,8 @@ class Population():
       self.general_interval.pop()
       self.g_length -= 1
 
-    binaries = bin_gray.binary_numbers_with_n_bits(self.g_length, bits)
-    grays = bin_gray.gray_numbers_with_n_bits(self.g_length, bits)
+    binaries = binary_numbers_with_n_bits(self.g_length, bits)
+    grays = gray_numbers_with_n_bits(self.g_length, bits)
 
     for range in ranges:
       x0, xf = range
@@ -230,10 +230,10 @@ class Population():
       print()
 
     self.binaries = self.binaries[:binary_index] \
-      + [bin_gray.mutate_binary_or_gray(binary)] \
+      + [mutate_binary_or_gray(binary)] \
       + self.binaries[binary_index + 1:]
     self.grays = self.grays[:gray_index] \
-      + [bin_gray.mutate_binary_or_gray(gray)] \
+      + [mutate_binary_or_gray(gray)] \
       + self.grays[gray_index + 1:]
 
     if (self._print):
