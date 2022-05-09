@@ -1,6 +1,6 @@
 from math import log2
 from random import sample
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from evo_tools.custom import custom_range
 from evo_tools.bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray
@@ -11,7 +11,7 @@ class PopulationMember():
     general_interval: List[str],
     binaries: List[str],
     grays: List[str],
-    positional_range: Tuple[float | int, float | int]
+    positional_range: Tuple[Union[float, int], Union[float, int]]
   ) -> None:
     pos_x0, pos_xf = positional_range
     self.interval = general_interval[
@@ -27,7 +27,7 @@ class PopulationMember():
 class Population():
   def __init__(
     self,
-    ranges: List[Tuple[float | int, float | int]],
+    ranges: List[Tuple[Union[float, int], Union[float, int]]],
     decimals: int,
     print: bool = False
   ) -> None:

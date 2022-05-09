@@ -1,10 +1,10 @@
-from typing import Generator
+from typing import Generator, Union
 
 def custom_range(
-  start: float | int,
-  stop: float | int | None = None,
-  step: float | int | None = None
-) -> Generator[float | int, None, None]:
+  start: Union[float, int],
+  stop: Union[float, int, None] = None,
+  step: Union[float, int, None] = None
+) -> Generator[Union[float, int], None, None]:
   if stop == None:
     stop = start + 0.0
     start = 0.0
