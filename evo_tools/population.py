@@ -101,27 +101,34 @@ class Population():
         'grays': grays,
         'bits': bits
       }
+      self._current_data = self._initial_data.copy()
 
       return self._initial_data
 
+  def update_current_data(self, sample_size: int):
+    current_binaries = self._current_data['binaries']
+    current_grays = self._current_data['grays']
+    bits = self._current_data['bits']
+    self._current_data = {
+      'binaries': sample(current_binaries, sample_size),
+      'grays': sample(current_grays, sample_size),
+      'bits': bits
+    }
+
+    return self._current_data
+
   def select(self, sample_size: int):
-    # if (sample_size > len(self.binaries)):
-    #   raise Exception(f'Sample size too big, maximum is: {len(self.binaries)}')
+    if (sample_size > self.max_sample_size):
+      raise Exception(
+        f'Sample size too big, maximum is: {self.max_sample_size}'
+      )
 
-    # self.binary_selection = sample(self.binaries, sample_size)
-    # self.gray_selection = [
-    #   self.grays[
-    #     self.binaries.index(binary)
-    #   ] for binary in self.binary_selection
-    # ]
+    try:
+      return self.update_current_data(sample_size)
+    except:
+      self.select_initial_data()
 
-    # if (self._print):
-    #   print(f'binary selection: {self.binary_selection}')
-    #   print(f'gray selection  : {self.gray_selection}')
-    #   print()
-
-    # return self.binary_selection, self.gray_selection
-    pass
+      return self.update_current_data(sample_size)
 
   def crossover(self, points: Tuple[int, int], from_initial: bool = False):
     # if (self._print):
