@@ -58,7 +58,7 @@ def range_of_numbers_binary_and_gray(
 
   p10 = pow(precision, -1) if precision != 1 else 1
   n_decimal_digits = int(round(log(p10, 10)))
-  bits = int(log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)
+  bits = int(round((log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)))
 
   if p10 != 1 and p10 % 10 != 0:
     raise Exception(f'Bad precision: {precision} should be a positive decimal fraction.')
@@ -99,31 +99,27 @@ def float_to_binary_and_gray(
     )
 
   numbers, bits = range_of_numbers_binary_and_gray(rng, precision)
+  aux = list(filter(lambda number: number['number'] == str(n), numbers))
 
-  if len(list(filter(lambda number: number['number'] == str(n), numbers))) == 0:
+  if len(aux) == 0:
     raise Exception(
       f'Bad input: {n} is not in the discrete range: {rng} with precision: {precision}'
     )
 
-  return list(filter(lambda number: number['number'] == str(n), numbers))[0], bits, numbers
+  return aux[0], bits, numbers
 
-def binary_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
-  numbers = []
+def binary_to_float(
+  b: str,
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: float
+) -> NumberBinaryAndGray:
+  n = binary_to_int(b)
+  numbers, _ = range_of_numbers_binary_and_gray(rng, precision)
 
-  for i in range(n):
-    b = format_to_n_bits(int_to_binary(i), bits)
-    numbers.append(b)
+  if n >= len(numbers):
+    raise Exception('Bad input')
 
-  return numbers
-
-def gray_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
-  numbers = []
-
-  for i in range(n):
-    b = format_to_n_bits(int_to_gray(i), bits)
-    numbers.append(b)
-
-  return numbers
+  return numbers[n]
 
 def mutate_binary_or_gray(n: str) -> str:
   length = len(n) - 1
