@@ -1,9 +1,8 @@
-from evo_tools.bin_gray import binary_numbers_with_n_bits
 from evo_tools.bin_gray import binary_to_gray
 from evo_tools.bin_gray import binary_to_int
+from evo_tools.bin_gray import binary_to_float
 from evo_tools.bin_gray import float_to_binary_and_gray
 from evo_tools.bin_gray import format_to_n_bits
-from evo_tools.bin_gray import gray_numbers_with_n_bits
 from evo_tools.bin_gray import gray_to_binary
 from evo_tools.bin_gray import int_to_binary
 from evo_tools.bin_gray import int_to_gray
@@ -11,5 +10,6 @@ from evo_tools.bin_gray import mutate_binary_or_gray
 from evo_tools.bin_gray import range_of_numbers_binary_and_gray
 from evo_tools.bin_gray import NumberBinaryAndGray
 from evo_tools.custom import custom_range
+from evo_tools.helpers import sub_strings_by_array
 from evo_tools.population import PopulationMember
 from evo_tools.population import Population

@@ -1,7 +1,10 @@
+from json import dumps
 from random import sample
-from typing import List, Tuple,TypedDict,  Union
+from typing import List, Tuple,TypedDict, Union
+from functools import reduce
 
-from bin_gray import NumberBinaryAndGray, range_of_numbers_binary_and_gray
+from bin_gray import NumberBinaryAndGray, binary_to_float, range_of_numbers_binary_and_gray
+from helpers import sub_strings_by_array
 
 class Sample(TypedDict):
   binaries: List[str]
@@ -19,35 +22,43 @@ class PopulationMember():
     self.numbers = numbers
     self.bits = bits
 
+  def __str__(self) -> str:
+    return f'"rng": {self.rng}, "numbers": {self.numbers}, "bits": {self.bits}'
+
 class Population():
   def __init__(
     self,
     ranges: List[Tuple[Union[float, int], Union[float, int]]],
     precision: Union[float, int],
-    print: bool = False
+    _print: bool = False
   ) -> None:
-    self.population_members: List[PopulationMember] = []
-    self._print = print
+    self._population_members: List[PopulationMember] = []
+    self._precision = precision
+    self._print = _print
 
     if len(ranges) == 0:
       raise Exception('At least one range is required')
 
     for rng in ranges:
-      population_range, bits = range_of_numbers_binary_and_gray(rng, precision)
-      self.population_members.append(
+      population_range, bits = range_of_numbers_binary_and_gray(
+        rng,
+        self._precision
+      )
+      # self._total_numbers += population_range
+      self._population_members.append(
         PopulationMember(rng, population_range, bits)
       )
 
-    self.max_sample_size = len(self.population_members[0].numbers)
+    self.max_sample_size = len(self._population_members[0].numbers)
 
-    for population_member in self.population_members:
+    for population_member in self._population_members:
       aux = len(population_member.numbers)
 
       if aux < self.max_sample_size:
         self.max_sample_size = aux
 
   def print(self):
-    for population_member in self.population_members:
+    for population_member in self._population_members:
       print(f'Range:')
       print(population_member.rng)
       print()
@@ -75,7 +86,7 @@ class Population():
       binaries = []
       grays = []
 
-      for population_member in self.population_members:
+      for population_member in self._population_members:
         samples.append(
           sample(population_member.numbers, sample_size)
         )
@@ -86,14 +97,14 @@ class Population():
         binary = ''
         gray = ''
 
-        for j, _ in enumerate(self.population_members):
+        for j, _ in enumerate(self._population_members):
           binary += samples[j][i]['binary']
           gray += samples[j][i]['gray']
 
         binaries.append(binary)
         grays.append(gray)
 
-      for population_member in self.population_members:
+      for population_member in self._population_members:
         bits.append(population_member.bits)
 
       self._initial_data: Sample = {
@@ -130,48 +141,93 @@ class Population():
 
       return self.update_current_data(sample_size)
 
-  def crossover(self, points: Tuple[int, int], from_initial: bool = False):
-    # if (self._print):
-    #   print('\nCrossover:\n')
+  def validate_binaries_in_range(self, binaries: List[List[str]]):
+    for bins in binaries:
+      for i, b in enumerate(bins):
+        try:
+          _range = self._population_members[i].rng
+          f = binary_to_float(b, _range, self._precision)
+          x0, xf = _range
 
-    # p1, p2 = points
+          if float(f['number']) < x0 or float(f['number']) > xf:
+            return False
+        except:
+          return False
 
-    # if p1 > self.bits - 1 or p2 > self.bits - 1:
-    #   if p1 > self.bits - 1:
-    #     raise Exception(f'Point {p1} out of range, maximum is: {self.bits - 3}')
+    return True
 
-    #   if p2 > self.bits - 1:
-    #     raise Exception(f'Point {p2} out of range, maximum is: {self.bits - 1}')
+  def crossover(self, points: Tuple[int, int]):
+    if (self._print):
+      print('\nCrossover: \n')
 
-    # binary_selection, gray_selection = self.select_initial_data(2) \
-    #   if from_initial \
-    #   else self.select(2)
+    p1, p2 = points
+    total_bits = 0
+    bits = []
 
-    # binary_parent_1, binary_parent_2 = sample(binary_selection, 2)
-    # gray_parent_1, gray_parent_2 = sample(gray_selection, 2)
+    try:
+      bits = self._current_data['bits']
+      total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
+    except:
+      self.select_initial_data()
+      bits = self._current_data['bits']
+      total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
+    finally:
+      if p1 > total_bits - 1 or p2 > total_bits - 1:
+        if p1 > total_bits - 1:
+          raise Exception(
+            f'Point {p1} out of range, maximum is: {total_bits - 3}'
+          )
 
-    # binary_children = [
-    #   binary_parent_1[:p1] + binary_parent_2[p1:p2] + binary_parent_1[p2:],
-    #   binary_parent_2[:p1] + binary_parent_1[p1:p2] + binary_parent_2[p2:]
-    # ]
-    # gray_children = [
-    #   gray_parent_1[:p1] + gray_parent_2[p1:p2] + gray_parent_1[p2:],
-    #   gray_parent_2[:p1] + gray_parent_1[p1:p2] + gray_parent_2[p2:]
-    # ]
+        if p2 > self.total_bits - 1:
+          raise Exception(
+            f'Point {p2} out of range, maximum is: {total_bits - 1}'
+          )
 
-    # if (self._print):
-    #   print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
-    #   print(f'binary part 1  : {binary_parent_1[:p1]} + {binary_parent_2[p1:p2]} + {binary_parent_1[p2:]}')
-    #   print(f'binary part 2  : {binary_parent_2[:p1]} + {binary_parent_1[p1:p2]} + {binary_parent_2[p2:]}')
-    #   print(f'binary children: {binary_children}')
-    #   print()
-    #   print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
-    #   print(f'gray part 1  : {gray_parent_1[:p1]} + {gray_parent_2[p1:p2]} + {gray_parent_1[p2:]}')
-    #   print(f'gray part 2  : {gray_parent_2[:p1]} + {gray_parent_1[p1:p2]} + {gray_parent_2[p2:]}')
-    #   print(f'gray children: {gray_children}')
+      binaries = self._current_data['binaries']
+      grays = self._current_data['grays']
 
-    # return binary_children, gray_children
-    pass
+      a = 10
+      while True:
+        binary_parent_1, binary_parent_2 = sample(binaries, 2)
+
+        binary_children = [
+          binary_parent_1[:p1] + binary_parent_2[p1:p2] + binary_parent_1[p2:],
+          binary_parent_2[:p1] + binary_parent_1[p1:p2] + binary_parent_2[p2:]
+        ]
+
+        binaries_to_validate = [
+          sub_strings_by_array(binary_children[0], bits),
+          sub_strings_by_array(binary_children[1], bits)
+        ]
+        are_binaries_valid = self.validate_binaries_in_range(binaries_to_validate)
+        print(are_binaries_valid)
+        a -= 1
+        if a < 0:
+          raise Exception
+
+        if are_binaries_valid:
+          break
+
+      gray_parent_1 = grays[binaries.index(binary_parent_1)]
+      gray_parent_2 = grays[binaries.index(binary_parent_2)]
+
+      gray_children = [
+        gray_parent_1[:p1] + gray_parent_2[p1:p2] + gray_parent_1[p2:],
+        gray_parent_2[:p1] + gray_parent_1[p1:p2] + gray_parent_2[p2:]
+      ]
+
+      if (self._print):
+        print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
+        print(f'binary part 1  : {binary_parent_1[:p1]} + {binary_parent_2[p1:p2]} + {binary_parent_1[p2:]}')
+        print(f'binary part 2  : {binary_parent_2[:p1]} + {binary_parent_1[p1:p2]} + {binary_parent_2[p2:]}')
+        print(f'binary children: {binary_children}')
+        print()
+        print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
+        print(f'gray part 1  : {gray_parent_1[:p1]} + {gray_parent_2[p1:p2]} + {gray_parent_1[p2:]}')
+        print(f'gray part 2  : {gray_parent_2[:p1]} + {gray_parent_1[p1:p2]} + {gray_parent_2[p2:]}')
+        print(f'gray children: {gray_children}')
+
+      return binary_children, gray_children
 
   def mutation(self, from_initial: bool = False):
     # binary_selection, gray_selection = self.select_initial_data(1) \
