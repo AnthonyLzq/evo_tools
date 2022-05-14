@@ -1,6 +1,6 @@
 from random import randint
-from math import log2
-from typing import List, Tuple
+from math import log, log2
+from typing import List, Tuple, Union
 from custom import custom_range
 from json import dumps
 
@@ -42,39 +42,49 @@ def format_to_n_bits(b_number: str, bits: int) -> str:
 
 def float_to_gray_and_binary(
   n: float,
-  rng: Tuple[int, int],
+  rng: Tuple[Union[int, float], Union[int, float]],
   precision: float
 ) -> str:
   x0, xf = rng
-  p10 = pow(precision, -1)
-  n_decimal_digits = int(p10 / 10)
-  numbers = {}
-  bits = int(log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)
 
-  if x0 > n or n > xf:
+  if n < x0 or n > xf:
     raise Exception(f'Bad input: {n} is out of bounds: {rng}.')
 
-  if p10 % 10 != 0:
-    raise Exception(f'Bad precision: {precision} should be a decimal fraction.')
+  if precision < 0 or precision > 1:
+    raise Exception(
+      'Precision can be only a positive decimal fraction betwen <0, 1]'
+    )
 
-  for i in custom_range(x0, xf, precision):
+  p10 = pow(precision, -1) if precision != 1 else 1
+  n_decimal_digits = int(round(log(p10, 10)))
+  bits = int(log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)
+  numbers = []
+
+  if p10 != 1 and p10 % 10 != 0:
+    raise Exception(f'Bad precision: {precision} should be a positive decimal fraction.')
+
+  for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
     number = int(p10 * i)
 
     if x0 < 0:
       number += int(-1 * x0 * p10)
 
     index = round(i, n_decimal_digits)
-    numbers[index if index != 0 else -1 * index] = {
+    numbers.append({
+      'number': format(
+        index,
+        f'.{n_decimal_digits}f'
+      ) if index != 0 else str(index) + str(0) * (n_decimal_digits - 1),
       'binary': format_to_n_bits(int_to_binary(number), bits),
       'gray': format_to_n_bits(int_to_gray(number), bits)
-    }
+    })
 
-  if n not in numbers:
+  if len(list(filter(lambda number: number['number'] == str(n), numbers))) == 0:
     raise Exception(
       f'Bad input: {n} is not in the discrete range: {rng} with precision: {precision}'
     )
 
-  return numbers[n], numbers
+  return list(filter(lambda number: number['number'] == str(n), numbers))[0], numbers
 
 def binary_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
   numbers = []
