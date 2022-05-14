@@ -1,6 +1,7 @@
 from evo_tools.bin_gray import binary_numbers_with_n_bits
 from evo_tools.bin_gray import binary_to_gray
 from evo_tools.bin_gray import binary_to_int
+from evo_tools.bin_gray import float_to_gray_and_binary
 from evo_tools.bin_gray import format_to_n_bits
 from evo_tools.bin_gray import gray_numbers_with_n_bits
 from evo_tools.bin_gray import gray_to_binary
