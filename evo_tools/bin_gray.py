@@ -1,8 +1,13 @@
 from random import randint
 from math import log, log2
-from typing import List, Tuple, Union
+from typing import List, Tuple, TypedDict, Union
 
 from custom import custom_range
+
+class NumberBinaryAndGray(TypedDict):
+  number: str
+  binary: str
+  gray: str
 
 def binary_to_int(n: str) -> int:
   return int(n, 2)
@@ -41,9 +46,9 @@ def format_to_n_bits(b_number: str, bits: int) -> str:
   return b_number
 
 def range_of_numbers_binary_and_gray(
-  rng: Tuple[Union[int, float], Union[int, float]],
-  precision: Union[int, float]
-):
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int]
+) -> List[NumberBinaryAndGray]:
   x0, xf = rng
 
   if precision < 0 or precision > 1:
@@ -76,11 +81,11 @@ def range_of_numbers_binary_and_gray(
       'gray': format_to_n_bits(int_to_gray(number), bits)
     })
 
-  return numbers
+  return numbers, bits
 
 def float_to_binary_and_gray(
   n: float,
-  rng: Tuple[Union[int, float], Union[int, float]],
+  rng: Tuple[Union[float, int], Union[float, int]],
   precision: float
 ) -> str:
   x0, xf = rng
@@ -93,14 +98,14 @@ def float_to_binary_and_gray(
       'Precision can be only a positive decimal fraction betwen <0, 1]'
     )
 
-  numbers = range_of_numbers_binary_and_gray(rng, precision)
+  numbers, bits = range_of_numbers_binary_and_gray(rng, precision)
 
   if len(list(filter(lambda number: number['number'] == str(n), numbers))) == 0:
     raise Exception(
       f'Bad input: {n} is not in the discrete range: {rng} with precision: {precision}'
     )
 
-  return list(filter(lambda number: number['number'] == str(n), numbers))[0], numbers
+  return list(filter(lambda number: number['number'] == str(n), numbers))[0], bits, numbers
 
 def binary_numbers_with_n_bits(n: int, bits = 8) -> List[str]:
   numbers = []
