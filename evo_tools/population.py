@@ -1,9 +1,12 @@
-from math import log2
-# from random import sample
-from typing import List, Tuple, Union
+from random import sample
+from typing import List, Tuple,TypedDict,  Union
 
-from custom import custom_range
-from bin_gray import binary_numbers_with_n_bits, gray_numbers_with_n_bits, mutate_binary_or_gray, NumberBinaryAndGray, range_of_numbers_binary_and_gray
+from bin_gray import NumberBinaryAndGray, range_of_numbers_binary_and_gray
+
+class Sample(TypedDict):
+  binaries: List[str]
+  grays: List[str]
+  bits: List[int]
 
 class PopulationMember():
   def __init__(
@@ -26,11 +29,22 @@ class Population():
     self.population_members: List[PopulationMember] = []
     self._print = print
 
+    if len(ranges) == 0:
+      raise Exception('At least one range is required')
+
     for rng in ranges:
       population_range, bits = range_of_numbers_binary_and_gray(rng, precision)
       self.population_members.append(
         PopulationMember(rng, population_range, bits)
       )
+
+    self.max_sample_size = len(self.population_members[0].numbers)
+
+    for population_member in self.population_members:
+      aux = len(population_member.numbers)
+
+      if aux < self.max_sample_size:
+        self.max_sample_size = aux
 
   def print(self):
     for population_member in self.population_members:
@@ -44,30 +58,51 @@ class Population():
       print(population_member.numbers)
       print()
 
-  def select_initial_data(self, sample_size: int):
-    # if (sample_size > len(self.binaries)):
-    #   raise Exception(f'Sample size too big, maximum is: {len(self.binaries)}')
+  def select_initial_data(self, sample_size: int) -> Sample:
+    if (sample_size > self.max_sample_size):
+      raise Exception(
+        f'Sample size too big, maximum is: {self.max_sample_size}'
+      )
 
-    # try:
-    #   if (self._print):
-    #     print(f'initial binary data: {self.initial_binary_data}')
-    #     print(f'initial gray data  : {self.initial_gray_data}')
+    try:
+      if self._print:
+        print(self._initial_data)
 
-    #   return self.initial_binary_data, self.initial_gray_data
-    # except:
-    #   self.initial_binary_data = sample(self.binaries, sample_size)
-    #   self.initial_gray_data = [
-    #     self.grays[
-    #       self.binaries.index(binary)
-    #     ] for binary in self.initial_binary_data
-    #   ]
+      return self._initial_data
+    except:
+      samples: List[List[NumberBinaryAndGray]] = []
+      bits = []
+      binaries = []
+      grays = []
 
-    #   if (self._print):
-    #     print(f'initial binary data: {self.initial_binary_data}')
-    #     print(f'initial gray data  : {self.initial_gray_data}')
+      for population_member in self.population_members:
+        samples.append(
+          sample(population_member.numbers, sample_size)
+        )
 
-    #   return self.initial_binary_data, self.initial_gray_data
-    pass
+      f_sample = samples[0]
+
+      for i, __ in enumerate(f_sample):
+        binary = ''
+        gray = ''
+
+        for j, _ in enumerate(self.population_members):
+          binary += samples[j][i]['binary']
+          gray += samples[j][i]['gray']
+
+        binaries.append(binary)
+        grays.append(gray)
+
+      for population_member in self.population_members:
+        bits.append(population_member.bits)
+
+      self._initial_data: Sample = {
+        'binaries': binaries,
+        'grays': grays,
+        'bits': bits
+      }
+
+      return self._initial_data
 
   def select(self, sample_size: int):
     # if (sample_size > len(self.binaries)):
