@@ -58,14 +58,18 @@ class Population():
         self.max_sample_size = aux
 
   def print(self):
+    print('\nCurrent population sample:\n')
+    print(self._current_data)
+    print('\nData from population members:')
+
     for population_member in self._population_members:
-      print(f'Range:')
+      print('\nRange:\n')
       print(population_member.rng)
       print()
-      print(f'Bits:')
+      print('\nBits:\n')
       print(population_member.bits)
       print()
-      print(f'Numbers:')
+      print('\nNumbers:\n')
       print(population_member.numbers)
       print()
 
@@ -79,6 +83,7 @@ class Population():
 
     try:
       if self._print:
+        print('\nInitial data:\n')
         print(self._initial_data)
 
       return self._initial_data
@@ -116,7 +121,7 @@ class Population():
       }
       self._current_data = self._initial_data.copy()
 
-      return self._initial_data
+      return self._current_data.copy()
 
   def get_sample_from_data(self, sample_size: int) -> Sample:
     current_binaries = self._current_data['binaries']
@@ -129,14 +134,14 @@ class Population():
       'bits': bits
     }
 
-  def update_current_data(self, binaries: List[str], grays: List[str]):
+  def update_current_data(self, binaries: List[str], grays: List[str]) -> None:
     self._current_data = {
       'binaries': binaries,
       'grays': grays,
       'bits': self._current_data['bits']
     }
 
-  def select(self, sample_size: int):
+  def select(self, sample_size: int) -> None:
     if (sample_size > self.max_sample_size):
       raise Exception(
         f'Sample size too big, maximum is: {self.max_sample_size}'
@@ -146,13 +151,15 @@ class Population():
       sample_data = self.get_sample_from_data(sample_size)
       self.update_current_data(sample_data['binaries'], sample_data['grays'])
 
-      return self._current_data
+      if self._print:
+        print('\nSelection: \n')
+        print(self._current_data)
     except:
       raise Exception(
         'Select initial data was not invoked at the beging. It must be.'
       )
 
-  def validate_binaries_in_range(self, binaries: List[List[str]]):
+  def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
     for bins in binaries:
       for i, b in enumerate(bins):
         try:
@@ -167,7 +174,7 @@ class Population():
 
     return True
 
-  def crossover(self, points: Tuple[int, int]):
+  def crossover(self, points: Tuple[int, int]) -> None:
     if (self._print):
       print('\nCrossover: \n')
 
@@ -238,7 +245,7 @@ class Population():
         'Select initial data was not invoked at the beging. It must be.'
       )
 
-  def mutation(self):
+  def mutation(self) -> None:
     if (self._print):
       print('\nMutation: \n')
 
