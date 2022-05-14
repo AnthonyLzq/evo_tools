@@ -1,5 +1,5 @@
-from bin_gray import float_to_gray_and_binary
 from json import dumps
+from bin_gray import float_to_binary_and_gray, range_of_numbers_binary_and_gray
 # from population import Population
 
 # population = Population([(-3, 3), (0, 3)], 0, True)
@@ -12,6 +12,11 @@ n = 0.001
 rng = [-1, 0.1]
 precision = 0.001
 
-b_number, numbers = float_to_gray_and_binary(n, rng, precision)
+b_number, _ = float_to_binary_and_gray(n, rng, precision)
 print(b_number)
-# print(dumps(numbers, indent=2))
+
+rng = [-2, 3]
+precision = 0.1
+
+numbers = range_of_numbers_binary_and_gray(rng, precision)
+print(dumps(numbers, indent = 2))

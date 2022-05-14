@@ -32,10 +32,6 @@ class Population():
     print: bool = False
   ) -> None:
     self.population_members: List[PopulationMember] = []
-    lower_x0 = ranges[0][0]
-    upper_xf = ranges[0][1]
-    bits = 0
-    general_range = (lower_x0, upper_xf)
     self._print = print
 
     for range in ranges:

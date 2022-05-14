@@ -1,8 +1,8 @@
 from random import randint
 from math import log, log2
 from typing import List, Tuple, Union
+
 from custom import custom_range
-from json import dumps
 
 def binary_to_int(n: str) -> int:
   return int(n, 2)
@@ -40,7 +40,45 @@ def format_to_n_bits(b_number: str, bits: int) -> str:
 
   return b_number
 
-def float_to_gray_and_binary(
+def range_of_numbers_binary_and_gray(
+  rng: Tuple[Union[int, float], Union[int, float]],
+  precision: Union[int, float]
+):
+  x0, xf = rng
+
+  if precision < 0 or precision > 1:
+    raise Exception(
+      'Precision can be only a positive decimal fraction betwen <0, 1]'
+    )
+
+  p10 = pow(precision, -1) if precision != 1 else 1
+  n_decimal_digits = int(round(log(p10, 10)))
+  bits = int(log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)
+
+  if p10 != 1 and p10 % 10 != 0:
+    raise Exception(f'Bad precision: {precision} should be a positive decimal fraction.')
+
+  numbers = []
+
+  for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
+    number = int(p10 * i)
+
+    if x0 < 0:
+      number += int(-1 * x0 * p10)
+
+    index = round(i, n_decimal_digits)
+    numbers.append({
+      'number': format(
+        index,
+        f'.{n_decimal_digits}f'
+      ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
+      'binary': format_to_n_bits(int_to_binary(number), bits),
+      'gray': format_to_n_bits(int_to_gray(number), bits)
+    })
+
+  return numbers
+
+def float_to_binary_and_gray(
   n: float,
   rng: Tuple[Union[int, float], Union[int, float]],
   precision: float
@@ -55,29 +93,7 @@ def float_to_gray_and_binary(
       'Precision can be only a positive decimal fraction betwen <0, 1]'
     )
 
-  p10 = pow(precision, -1) if precision != 1 else 1
-  n_decimal_digits = int(round(log(p10, 10)))
-  bits = int(log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)
-  numbers = []
-
-  if p10 != 1 and p10 % 10 != 0:
-    raise Exception(f'Bad precision: {precision} should be a positive decimal fraction.')
-
-  for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
-    number = int(p10 * i)
-
-    if x0 < 0:
-      number += int(-1 * x0 * p10)
-
-    index = round(i, n_decimal_digits)
-    numbers.append({
-      'number': format(
-        index,
-        f'.{n_decimal_digits}f'
-      ) if index != 0 else str(index) + str(0) * (n_decimal_digits - 1),
-      'binary': format_to_n_bits(int_to_binary(number), bits),
-      'gray': format_to_n_bits(int_to_gray(number), bits)
-    })
+  numbers = range_of_numbers_binary_and_gray(rng, precision)
 
   if len(list(filter(lambda number: number['number'] == str(n), numbers))) == 0:
     raise Exception(
