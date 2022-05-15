@@ -1,8 +1,14 @@
 from random import sample
 from math import log
-from typing import List, Tuple,TypedDict, Union
 from functools import reduce
-from sympy import symbols, exp
+from sympy import exp
+from typing import List, Tuple, Union
+from sys import version_info
+
+if version_info >= (3, 8):
+  from typing import TypedDict
+else:
+  from typing_extensions import TypedDict
 
 from bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from helpers import sub_strings_by_array

@@ -1,6 +1,12 @@
 from random import randint
 from math import log, log2
-from typing import List, Tuple, TypedDict, Union
+from typing import List, Tuple, Union
+from sys import version_info
+
+if version_info >= (3, 8):
+  from typing import TypedDict
+else:
+  from typing_extensions import TypedDict
 
 from custom import custom_range
 
