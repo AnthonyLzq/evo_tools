@@ -1,4 +1,4 @@
-from random import sample
+from random import sample, random
 from math import log
 from functools import reduce
 from sympy import exp
@@ -37,10 +37,14 @@ class Population():
     self,
     ranges: List[Tuple[Union[float, int], Union[float, int]]],
     precision: Union[float, int],
-    _print: bool = False
+    crossover_rate: float,
+    mutation_rate: float,
+    _print: bool = False,
   ) -> None:
     self._population_members: List[PopulationMember] = []
     self._precision = precision
+    self._crossover_rate = crossover_rate
+    self._mutation_rate = mutation_rate
     self._print = _print
 
     p10 = pow(precision, -1) if precision != 1 else 1
@@ -185,107 +189,117 @@ class Population():
     return True
 
   def crossover(self, points: Tuple[int, int]) -> None:
-    if (self._print):
-      print('\nCrossover: \n')
+    p = random()
 
-    p1, p2 = points
-    total_bits = 0
-    bits = []
-
-    try:
-      bits = self._current_data['bits']
-      total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
-
-      if p1 > total_bits - 1 or p2 > total_bits - 1:
-        if p1 > total_bits - 1:
-          raise Exception(
-            f'Point {p1} out of range, maximum is: {total_bits - 3}'
-          )
-
-        if p2 > self.total_bits - 1:
-          raise Exception(
-            f'Point {p2} out of range, maximum is: {total_bits - 1}'
-          )
-
-      binaries = self._current_data['binaries']
-      grays = self._current_data['grays']
-
-      while True:
-        binary_parent_1, binary_parent_2 = sample(binaries, 2)
-
-        binary_children = [
-          binary_parent_1[:p1] + binary_parent_2[p1:p2] + binary_parent_1[p2:],
-          binary_parent_2[:p1] + binary_parent_1[p1:p2] + binary_parent_2[p2:]
-        ]
-
-        binaries_to_validate = [
-          sub_strings_by_array(binary_children[0], bits),
-          sub_strings_by_array(binary_children[1], bits)
-        ]
-        are_binaries_valid = self.validate_binaries_in_range(
-          binaries_to_validate
-        )
-
-        if are_binaries_valid:
-          break
-
-      gray_parent_1 = grays[binaries.index(binary_parent_1)]
-      gray_parent_2 = grays[binaries.index(binary_parent_2)]
-
-      gray_children = [
-        gray_parent_1[:p1] + gray_parent_2[p1:p2] + gray_parent_1[p2:],
-        gray_parent_2[:p1] + gray_parent_1[p1:p2] + gray_parent_2[p2:]
-      ]
-
+    if random() < self._crossover_rate:
       if (self._print):
-        print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
-        print(f'binary part 1  : {binary_parent_1[:p1]} + {binary_parent_2[p1:p2]} + {binary_parent_1[p2:]}')
-        print(f'binary part 2  : {binary_parent_2[:p1]} + {binary_parent_1[p1:p2]} + {binary_parent_2[p2:]}')
-        print(f'binary children: {binary_children}')
-        print()
-        print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
-        print(f'gray part 1  : {gray_parent_1[:p1]} + {gray_parent_2[p1:p2]} + {gray_parent_1[p2:]}')
-        print(f'gray part 2  : {gray_parent_2[:p1]} + {gray_parent_1[p1:p2]} + {gray_parent_2[p2:]}')
-        print(f'gray children: {gray_children}')
+        print('\nCrossover: \n')
 
-      binaries += binary_children
-      grays += gray_children
+      p1, p2 = points
+      total_bits = 0
+      bits = []
 
-      self.update_current_data(binaries, grays)
-    except:
-      raise Exception(
-        'Select initial data was not invoked at the beging. It must be.'
-      )
+      try:
+        bits = self._current_data['bits']
+        total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
+
+        if p1 > total_bits - 1 or p2 > total_bits - 1:
+          if p1 > total_bits - 1:
+            raise Exception(
+              f'Point {p1} out of range, maximum is: {total_bits - 3}'
+            )
+
+          if p2 > self.total_bits - 1:
+            raise Exception(
+              f'Point {p2} out of range, maximum is: {total_bits - 1}'
+            )
+
+        binaries = self._current_data['binaries']
+        grays = self._current_data['grays']
+
+        while True:
+          binary_parent_1, binary_parent_2 = sample(binaries, 2)
+
+          binary_children = [
+            binary_parent_1[:p1] + binary_parent_2[p1:p2] + binary_parent_1[p2:],
+            binary_parent_2[:p1] + binary_parent_1[p1:p2] + binary_parent_2[p2:]
+          ]
+
+          binaries_to_validate = [
+            sub_strings_by_array(binary_children[0], bits),
+            sub_strings_by_array(binary_children[1], bits)
+          ]
+          are_binaries_valid = self.validate_binaries_in_range(
+            binaries_to_validate
+          )
+
+          if are_binaries_valid:
+            break
+
+        gray_parent_1 = grays[binaries.index(binary_parent_1)]
+        gray_parent_2 = grays[binaries.index(binary_parent_2)]
+
+        gray_children = [
+          gray_parent_1[:p1] + gray_parent_2[p1:p2] + gray_parent_1[p2:],
+          gray_parent_2[:p1] + gray_parent_1[p1:p2] + gray_parent_2[p2:]
+        ]
+
+        if (self._print):
+          print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
+          print(f'binary part 1  : {binary_parent_1[:p1]} + {binary_parent_2[p1:p2]} + {binary_parent_1[p2:]}')
+          print(f'binary part 2  : {binary_parent_2[:p1]} + {binary_parent_1[p1:p2]} + {binary_parent_2[p2:]}')
+          print(f'binary children: {binary_children}')
+          print()
+          print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
+          print(f'gray part 1  : {gray_parent_1[:p1]} + {gray_parent_2[p1:p2]} + {gray_parent_1[p2:]}')
+          print(f'gray part 2  : {gray_parent_2[:p1]} + {gray_parent_1[p1:p2]} + {gray_parent_2[p2:]}')
+          print(f'gray children: {gray_children}')
+
+        binaries += binary_children
+        grays += gray_children
+
+        self.update_current_data(binaries, grays)
+      except:
+        raise Exception(
+          'Select initial data was not invoked at the beging. It must be.'
+        )
+    elif self._print:
+      print(f'Crossover failed because p = {p} < {self._crossover_rate}')
 
   def mutation(self) -> None:
-    if (self._print):
-      print('\nMutation: \n')
+    p = random()
 
-    try:
-      binaries = self._current_data['binaries']
-      grays = self._current_data['grays']
-
+    if p < self._mutation_rate:
       if (self._print):
-        print(f'binaries before mutation: {binaries}')
-        print(f'grays before mutation: {grays}')
-        print()
+        print('\nMutation: \n')
 
-      binary_selected = sample(binaries, 1)[0]
-      index = binaries.index(binary_selected)
-      gray_selected = grays[index]
+      try:
+        binaries = self._current_data['binaries']
+        grays = self._current_data['grays']
 
-      binaries = binaries[:index] \
-        + [mutate_binary_or_gray(binary_selected)] \
-        + binaries[index + 1:]
-      grays = grays[:index] \
-        + [mutate_binary_or_gray(gray_selected)] \
-        + grays[index + 1:]
+        if (self._print):
+          print(f'binaries before mutation: {binaries}')
+          print(f'grays before mutation: {grays}')
+          print()
 
-      self.update_current_data(binaries, grays)
-    except:
-      raise Exception(
-        'Select initial data was not invoked at the beging. It must be.'
-      )
+        binary_selected = sample(binaries, 1)[0]
+        index = binaries.index(binary_selected)
+        gray_selected = grays[index]
+
+        binaries = binaries[:index] \
+          + [mutate_binary_or_gray(binary_selected)] \
+          + binaries[index + 1:]
+        grays = grays[:index] \
+          + [mutate_binary_or_gray(gray_selected)] \
+          + grays[index + 1:]
+
+        self.update_current_data(binaries, grays)
+      except:
+        raise Exception(
+          'Select initial data was not invoked at the beging. It must be.'
+        )
+    elif self._print:
+      print(f'Crossover failed because p = {p} < {self._crossover_rate}')
 
   def fitness(self, variables: str, f: exp):
     variables_array = variables.split()

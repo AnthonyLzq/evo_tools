@@ -6,6 +6,8 @@ from evo_tools.population import Population
 population = Population(
   [(0, 10), (0, 10), (0, 10), (0, 10), (0, 10)],
   1,
+  1,
+  0.1,
   True
 )
 initial_data = population.select_initial_data(8)
