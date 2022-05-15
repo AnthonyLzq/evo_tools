@@ -137,6 +137,9 @@ class Population():
 
       return self._current_data.copy()
 
+  def get_current_data(self):
+    return self._current_data.copy()
+
   def get_sample_from_data(self, sample_size: int) -> Sample:
     current_binaries = self._current_data['binaries']
     current_grays = self._current_data['grays']

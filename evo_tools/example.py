@@ -12,10 +12,12 @@ population = Population(
 )
 initial_data = population.select_initial_data(8)
 print(dumps(initial_data, indent = 2), end = '\n\n')
-# population.mutation()
 
 variables = 'x y z w v'
 x, y, z, w, v = symbols(variables)
 f = x + 2 * y + 3 * z + 4 * w + 5 * v
 
 population.fitness(variables, f)
+population.crossover()
+new_data = population.get_current_data()
+print(dumps(new_data, indent = 2), end = '\n\n')
