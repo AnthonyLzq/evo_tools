@@ -1,7 +1,8 @@
-from json import dumps
 from random import sample
+from math import log
 from typing import List, Tuple,TypedDict, Union
 from functools import reduce
+from sympy import symbols, exp
 
 from bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from helpers import sub_strings_by_array
@@ -35,6 +36,9 @@ class Population():
     self._population_members: List[PopulationMember] = []
     self._precision = precision
     self._print = _print
+
+    p10 = pow(precision, -1) if precision != 1 else 1
+    self._n_decimal_digits = int(round(log(p10, 10)))
 
     if len(ranges) == 0:
       raise Exception('At least one range is required')
@@ -135,7 +139,7 @@ class Population():
     }
 
   def update_current_data(self, binaries: List[str], grays: List[str]) -> None:
-    self._current_data = {
+    self._current_data: Sample = {
       'binaries': binaries,
       'grays': grays,
       'bits': self._current_data['bits']
@@ -160,14 +164,14 @@ class Population():
       )
 
   def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
-    for bins in binaries:
-      for i, b in enumerate(bins):
+    for b in binaries:
+      for i, gen in enumerate(b):
         try:
           _range = self._population_members[i].rng
-          f = binary_to_float(b, _range, self._precision)
+          fen = binary_to_float(gen, _range, self._precision)
           x0, xf = _range
 
-          if float(f['number']) < x0 or float(f['number']) > xf:
+          if float(fen['number']) < x0 or float(fen['number']) > xf:
             return False
         except:
           return False
@@ -212,7 +216,9 @@ class Population():
           sub_strings_by_array(binary_children[0], bits),
           sub_strings_by_array(binary_children[1], bits)
         ]
-        are_binaries_valid = self.validate_binaries_in_range(binaries_to_validate)
+        are_binaries_valid = self.validate_binaries_in_range(
+          binaries_to_validate
+        )
 
         if are_binaries_valid:
           break
@@ -274,3 +280,36 @@ class Population():
       raise Exception(
         'Select initial data was not invoked at the beging. It must be.'
       )
+
+  def fitness(self, variables: str, f: exp):
+    variables_array = variables.split()
+
+    if (len(variables_array) != len(self._population_members)):
+      raise Exception('Variables size does not match the number of ranges')
+
+    binaries = self._current_data['binaries']
+    # grays = self._current_data['grays']
+    bits = self._current_data['bits']
+
+    for chromosome in binaries:
+      gens = sub_strings_by_array(chromosome, bits)
+      print('gens', gens)
+      fens: List[float] = []
+
+      for i, gen in enumerate(gens):
+        _range = self._population_members[i].rng
+        fen = float(binary_to_float(gen, _range, self._precision)['number'])
+        fens.append(fen)
+
+      print(f'gens: {gens}')
+      print(f'fens: {fens}')
+
+      fitness = f.copy()
+      for i, v in enumerate(variables_array):
+        fitness = fitness.subs(v, fens[i])
+
+      final_fitness = format(fitness, f'.{self._n_decimal_digits}f')
+      print(f'fitness: {final_fitness}')
+
+  def canonical_algorithm(self):
+    pass

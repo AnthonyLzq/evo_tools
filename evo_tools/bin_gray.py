@@ -70,6 +70,8 @@ def range_of_numbers_binary_and_gray(
 
     if x0 < 0:
       number += int(-1 * x0 * p10)
+    elif x0 > 0:
+      number -= int(x0 * p10)
 
     index = round(i, n_decimal_digits)
     numbers.append({
@@ -114,12 +116,24 @@ def binary_to_float(
   precision: float
 ) -> NumberBinaryAndGray:
   n = binary_to_int(b)
-  numbers, _ = range_of_numbers_binary_and_gray(rng, precision)
+  p10 = pow(precision, -1) if precision != 1 else 1
+  n_decimal_digits = int(round(log(p10, 10)))
+  n = float(format(n / p10, f'.{n_decimal_digits}f'))
+  x0, _ = rng
+  numbers, __ = range_of_numbers_binary_and_gray(rng, precision)
+  aux = list(
+    filter(
+      lambda e: e['number'] == format(n + x0, f'.{n_decimal_digits}f'),
+      numbers
+    )
+  )
 
-  if n >= len(numbers):
-    raise Exception('Bad input')
+  if len(aux) == 0:
+    raise Exception(
+      f'Bad input: {n} is not in the discrete range: {rng} with precision: {precision}'
+    )
 
-  return numbers[n]
+  return aux[0]
 
 def mutate_binary_or_gray(n: str) -> str:
   length = len(n) - 1

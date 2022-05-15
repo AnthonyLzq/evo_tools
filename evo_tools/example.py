@@ -1,15 +1,19 @@
 from json import dumps
+from sympy import *
 
 from bin_gray import binary_to_float, float_to_binary_and_gray, range_of_numbers_binary_and_gray
 from helpers import sub_strings_by_array
 from population import Population
 
-population = Population([(-3, 3), (1, 3)], 0.01, True)
-# population.print()
+population = Population([(1, 2), (4, 5)], 0.01, True)
 initial_data = population.select_initial_data(10)
-# print(initial_data)
-print(population.crossover((3, 6)))
+print(initial_data, end='\n\n')
 # population.mutation()
+
+x, y = symbols('x y')
+f = x + y
+
+population.fitness('x y', f)
 
 # n = 0.001
 # rng = [-1, 0.1]

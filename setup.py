@@ -14,7 +14,7 @@ setup(
   long_description_content_type='text/markdown',
   long_description=LONG_DESCRIPTION,
   packages=find_packages(),
-  install_requires=[],
+  install_requires=['sympy'],
   keywords=['python', 'evolutionary programming'],
   project_urls={
     "Source Code": "https://gitlab.com/AnthonyLzq/evo_tools"
