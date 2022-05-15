@@ -291,9 +291,11 @@ class Population():
     # grays = self._current_data['grays']
     bits = self._current_data['bits']
 
-    for chromosome in binaries:
+    for i, chromosome in enumerate(binaries):
+      if (self._print):
+        print(f'Chromosome {i}: {chromosome}')
+
       gens = sub_strings_by_array(chromosome, bits)
-      print('gens', gens)
       fens: List[float] = []
 
       for i, gen in enumerate(gens):
@@ -301,8 +303,9 @@ class Population():
         fen = float(binary_to_float(gen, _range, self._precision)['number'])
         fens.append(fen)
 
-      print(f'gens: {gens}')
-      print(f'fens: {fens}')
+      if (self._print):
+        print(f'gens: {gens}')
+        print(f'fens: {fens}')
 
       fitness = f.copy()
       for i, v in enumerate(variables_array):
@@ -310,6 +313,7 @@ class Population():
 
       final_fitness = format(fitness, f'.{self._n_decimal_digits}f')
       print(f'fitness: {final_fitness}')
+      print()
 
   def canonical_algorithm(self):
     pass
