@@ -10,8 +10,8 @@ if version_info >= (3, 8):
 else:
   from typing_extensions import TypedDict
 
-from bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
-from helpers import sub_strings_by_array
+from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
+from evo_tools.helpers import sub_strings_by_array
 
 class Sample(TypedDict):
   binaries: List[str]

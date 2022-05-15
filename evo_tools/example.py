@@ -1,7 +1,7 @@
 from json import dumps
 from sympy import *
 
-from population import Population
+from evo_tools.population import Population
 
 population = Population(
   [(0, 10), (0, 10), (0, 10), (0, 10), (0, 10)],

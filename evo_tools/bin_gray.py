@@ -8,7 +8,7 @@ if version_info >= (3, 8):
 else:
   from typing_extensions import TypedDict
 
-from custom import custom_range
+from evo_tools.custom import custom_range
 
 class NumberBinaryAndGray(TypedDict):
   number: str
