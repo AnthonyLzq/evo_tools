@@ -1,4 +1,4 @@
-from random import sample, random
+from random import sample, random, randint
 from math import log
 from functools import reduce
 from sympy import exp
@@ -188,32 +188,20 @@ class Population():
 
     return True
 
-  def crossover(self, points: Tuple[int, int]) -> None:
+  def crossover(self) -> None:
     p = random()
 
     if random() < self._crossover_rate:
       if (self._print):
         print('\nCrossover: \n')
 
-      p1, p2 = points
       total_bits = 0
       bits = []
 
       try:
         bits = self._current_data['bits']
         total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
-
-        if p1 > total_bits - 1 or p2 > total_bits - 1:
-          if p1 > total_bits - 1:
-            raise Exception(
-              f'Point {p1} out of range, maximum is: {total_bits - 3}'
-            )
-
-          if p2 > self.total_bits - 1:
-            raise Exception(
-              f'Point {p2} out of range, maximum is: {total_bits - 1}'
-            )
-
+        point = randint(0, total_bits - 1)
         binaries = self._current_data['binaries']
         grays = self._current_data['grays']
 
@@ -221,8 +209,8 @@ class Population():
           binary_parent_1, binary_parent_2 = sample(binaries, 2)
 
           binary_children = [
-            binary_parent_1[:p1] + binary_parent_2[p1:p2] + binary_parent_1[p2:],
-            binary_parent_2[:p1] + binary_parent_1[p1:p2] + binary_parent_2[p2:]
+            binary_parent_1[:point] + binary_parent_1[point:],
+            binary_parent_2[:point] + binary_parent_2[point:]
           ]
 
           binaries_to_validate = [
@@ -240,19 +228,19 @@ class Population():
         gray_parent_2 = grays[binaries.index(binary_parent_2)]
 
         gray_children = [
-          gray_parent_1[:p1] + gray_parent_2[p1:p2] + gray_parent_1[p2:],
-          gray_parent_2[:p1] + gray_parent_1[p1:p2] + gray_parent_2[p2:]
+          gray_parent_1[:point] + gray_parent_1[point:],
+          gray_parent_2[:point] + gray_parent_2[point:]
         ]
 
         if (self._print):
           print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
-          print(f'binary part 1  : {binary_parent_1[:p1]} + {binary_parent_2[p1:p2]} + {binary_parent_1[p2:]}')
-          print(f'binary part 2  : {binary_parent_2[:p1]} + {binary_parent_1[p1:p2]} + {binary_parent_2[p2:]}')
+          print(f'binary part 1  : {binary_parent_1[:point]} + {binary_parent_1[point:]}')
+          print(f'binary part 2  : {binary_parent_2[:point]} + {binary_parent_2[point:]}')
           print(f'binary children: {binary_children}')
           print()
           print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
-          print(f'gray part 1  : {gray_parent_1[:p1]} + {gray_parent_2[p1:p2]} + {gray_parent_1[p2:]}')
-          print(f'gray part 2  : {gray_parent_2[:p1]} + {gray_parent_1[p1:p2]} + {gray_parent_2[p2:]}')
+          print(f'gray part 1  : {gray_parent_1[:point]} + {gray_parent_1[point:]}')
+          print(f'gray part 2  : {gray_parent_2[:point]} + {gray_parent_2[point:]}')
           print(f'gray children: {gray_children}')
 
         binaries += binary_children
