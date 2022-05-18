@@ -15,7 +15,7 @@ from evo_tools.helpers import sub_strings_by_array
 
 class Sample(TypedDict):
   """
-  A custom dict model which represents a sample
+  A custom dict model which represents a sample.
   """
   binaries: List[str]
   grays: List[str]
@@ -28,7 +28,7 @@ class PopulationMember():
 
   A PopulationMember is nothing but a object that represents a real range (float interval).
   So, a Population is build with several ranges, with its representation in binary
-  and gray code and the number of bits it uses to represents the range.
+  and gray code and the number of bits that are used to represent the range.
 
   For example, lets say you want to create a Population of one range: [1, 2],
   with a precision of 0.1, then we will only have an array of PopulationMember,
