@@ -20,6 +20,7 @@ class Sample(TypedDict):
   binaries: List[str]
   grays: List[str]
   bits: List[int]
+  scores: List[float]
 
 class PopulationMember():
   """
@@ -169,10 +170,6 @@ class Population():
       )
 
     self._max_sample_size = len(self._population_members[0].numbers)
-    variables_array = self._variables.split()
-
-    if (len(variables_array) != len(self._population_members)):
-      raise Exception('Variables size does not match the number of ranges')
 
     for population_member in self._population_members:
       aux = len(population_member.numbers)
@@ -180,13 +177,18 @@ class Population():
       if aux < self._max_sample_size:
         self._max_sample_size = aux
 
+    variables_array = self._variables.split()
+
+    if (len(variables_array) != len(self._population_members)):
+      raise Exception('Variables size does not match the number of ranges')
+
   def print(self):
     """
     Prints the current Population data. The current sample and the data from each
     PopulationMember.
     """
     print('\nCurrent population sample:\n')
-    print(self._current_data)
+    print(self._current_population)
     print('\nData from population members:')
 
     for population_member in self._population_members:
@@ -200,7 +202,7 @@ class Population():
       print(population_member.numbers)
       print()
 
-  def select_initial_data(self, sample_size: int) -> Sample:
+  def select_initial_population(self, sample_size: int) -> Sample:
     """
     Method that selects the initial sample (randomly) of the Population.
 
@@ -225,15 +227,16 @@ class Population():
 
     try:
       if self._print:
-        print('\nInitial data:\n')
-        print(self._initial_data)
+        print('\nInitial population:\n')
+        print(self._initial_population)
 
-      return self._initial_data
+      return self._initial_population
     except:
       samples: List[List[NumberBinaryAndGray]] = []
       bits = []
       binaries = []
       grays = []
+      scores = []
 
       for population_member in self._population_members:
         samples.append(
@@ -252,47 +255,89 @@ class Population():
 
         binaries.append(binary)
         grays.append(gray)
+        scores.append(0)
 
       for population_member in self._population_members:
         bits.append(population_member.bits)
 
-      self._initial_data: Sample = {
+      self._initial_population: Sample = {
         'binaries': binaries,
         'grays': grays,
-        'bits': bits
+        'bits': bits,
+        'scores': scores
       }
-      self._current_data = self._initial_data.copy()
+      self._current_population = self._initial_population.copy()
 
-      return self._current_data.copy()
+      return self._current_population.copy()
 
-  def get_current_data(self):
+  def get_current_population(self):
     """
     Returns a copy of the current Population data.
 
     Returns: :class:`Sample`
     """
-    return self._current_data.copy()
+    return self._current_population.copy()
 
-  def get_sample_from_data(self, sample_size: int) -> Sample:
+  def get_sample_from_population(self, sample_size: int) -> Sample:
     """
-    Method that selects a new sample randomly.
+    Method that selects a new sample randomly base on the following probability:
+    fitness(i) / fitness_population
 
     Args:
       sample_size: int
 
     Returns: :class:`Sample`
     """
-    current_binaries = self._current_data['binaries']
-    current_grays = self._current_data['grays']
-    bits = self._current_data['bits']
+    current_population_score = reduce(
+      lambda a, b: a + b,
+      self._current_population['scores']
+    )
+
+    if current_population_score == 0:
+      raise Exception('Fitness has to be calculated first.')
+
+    new_binaries: list(str) = []
+    new_grays: list(str) = []
+    new_scores: list(str) = []
+
+    for i, individual in enumerate(self._current_population['binaries']):
+      if random() < self._current_population['scores'][i] / current_population_score:
+        new_binaries.append(individual)
+        new_grays.append(self._current_population['grays'][i])
+        new_scores.append(self._current_population['scores'][i])
+
+    new_binaries_length = len(new_binaries)
+
+    if new_binaries_length < sample_size:
+      elements_to_add = sample_size - new_binaries_length
+
+      for _ in range(elements_to_add):
+        index = randint(0, len(self._current_population['binaries']))
+        new_binaries.append(self._current_population['binaries'][index])
+        new_grays.append(self._current_population['grays'][index])
+        new_scores.append(self._current_population['scores'][index])
+    elif new_binaries_length > sample_size:
+      elements_to_eliminate = new_binaries_length - sample_size
+
+      for _ in range(elements_to_eliminate):
+        index = randint(0, len(new_binaries))
+        new_binaries = new_binaries[:index] + new_binaries[index + 1:]
+        new_grays = new_grays[:index] + new_grays[index + 1:]
+        new_scores = new_scores[:index] + new_scores[index + 1:]
 
     return {
-      'binaries': sample(current_binaries, sample_size),
-      'grays': sample(current_grays, sample_size),
-      'bits': bits
+      'binaries': new_binaries,
+      'grays': new_grays,
+      'scores': new_scores,
+      'bits': self._current_data['bits']
     }
 
-  def update_current_data(self, binaries: List[str], grays: List[str]) -> None:
+  def update_current_data(
+    self,
+    binaries: List[str],
+    grays: List[str],
+    scores: List[float]
+  ) -> None:
     """
     Method that updates the current sample, after crossover or mutation.
 
@@ -302,10 +347,11 @@ class Population():
       grays List[str]
         New list of grays
     """
-    self._current_data: Sample = {
+    self._current_population: Sample = {
       'binaries': binaries,
       'grays': grays,
-      'bits': self._current_data['bits']
+      'scores': scores,
+      'bits': self._current_population['bits']
     }
 
   def select(self, sample_size: int) -> None:
@@ -325,12 +371,16 @@ class Population():
       )
 
     try:
-      sample_data = self.get_sample_from_data(sample_size)
-      self.update_current_data(sample_data['binaries'], sample_data['grays'])
+      sample_data = self.get_sample_from_population(sample_size)
+      self.update_current_data(
+        sample_data['binaries'],
+        sample_data['grays'],
+        sample_data['scores']
+      )
 
       if self._print:
         print('\nSelection: \n')
-        print(self._current_data)
+        print(self._current_population)
     except:
       raise Exception(
         'Select initial data was not invoked at the beginning. It must be.'
@@ -379,11 +429,11 @@ class Population():
       bits = []
 
       try:
-        bits = self._current_data['bits']
-        total_bits = reduce(lambda a, b: a + b, self._current_data['bits'])
+        bits = self._current_population['bits']
+        total_bits = reduce(lambda a, b: a + b, self._current_population['bits'])
         point = randint(0, total_bits - 1)
-        binaries = self._current_data['binaries']
-        grays = self._current_data['grays']
+        binaries = self._current_population['binaries']
+        grays = self._current_population['grays']
 
         while True:
           binary_parent_1, binary_parent_2 = sample(binaries, 2)
@@ -448,8 +498,8 @@ class Population():
         print('\nMutation: \n')
 
       try:
-        binaries = self._current_data['binaries']
-        grays = self._current_data['grays']
+        binaries = self._current_population['binaries']
+        grays = self._current_population['grays']
 
         if (self._print):
           print(f'binaries before mutation: {binaries}')
@@ -481,9 +531,9 @@ class Population():
     current population.
     """
     variables_array = self._variables.split()
-    binaries = self._current_data['binaries']
-    # grays = self._current_data['grays']
-    bits = self._current_data['bits']
+    binaries = self._current_population['binaries']
+    # grays = self._current_population['grays']
+    bits = self._current_population['bits']
 
     for i, chromosome in enumerate(binaries):
       if (self._print):
