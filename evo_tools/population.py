@@ -533,40 +533,52 @@ class Population():
       print(f'\nPopulation children after mutation: {mutated_children}\n')
       print()
 
-  # def fitness(self):
-  #   """
-  #   Method that calculates the fitness genotype of a given function for the
-  #   current population.
-  #   """
-  #   variables_array = self._variables.split()
-  #   binaries = self._current_population['binaries']
-  #   # grays = self._current_population['grays']
-  #   bits = self._current_population['bits']
+  def fitness(self, population_sample: List[Individual]) -> float:
+    """
+    Method that calculates the fitness genotype of a given function for the
+    current population.
 
-  #   for i, chromosome in enumerate(binaries):
-  #     if (self._print):
-  #       print(f'Chromosome {i}: {chromosome}')
+    Args:
+      population_sample (List[Individual]): a subset from the current population
+      to calculate its fitness.
 
-  #     gens = sub_strings_by_array(chromosome, bits)
-  #     fens: List[float] = []
+    Returns:
+      float: total fitness from sample.
+    """
+    variables_array = self._variables.split()
+    bits = population_sample[0].get_bits()
+    score_from_sample: float = 0.0
 
-  #     for i, gen in enumerate(gens):
-  #       _range = self._sub_populations[i].rng
-  #       fen = float(binary_to_float(gen, _range, self._precision)['number'])
-  #       fens.append(fen)
+    for i, individual in enumerate(population_sample):
+      chromosome = individual.get_binary()
 
-  #     if (self._print):
-  #       print(f'gens: {gens}')
-  #       print(f'fens: {fens}')
+      if (self._print):
+        print(f'Chromosome {i}: {chromosome}')
 
-  #     fitness = self._function.copy()
+      gens = sub_strings_by_array(chromosome, bits)
+      fens: List[float] = []
 
-  #     for i, v in enumerate(variables_array):
-  #       fitness = fitness.subs(v, fens[i])
+      for i, gen in enumerate(gens):
+        _range = self._sub_populations[i].rng
+        fen = float(binary_to_float(gen, _range, self._precision)['number'])
+        fens.append(fen)
 
-  #     final_fitness = format(fitness, f'.{self._n_decimal_digits}f')
-  #     print(f'fitness: {final_fitness}')
-  #     print()
+      if (self._print):
+        print(f'  gens: {gens}')
+        print(f'  fens: {fens}')
+
+      fitness: exp = self._function.copy()
+
+      for i, v in enumerate(variables_array):
+        fitness = fitness.subs(v, fens[i])
+
+      score = format(fitness, f'.{self._n_decimal_digits}f')
+      score_from_sample += float(score)
+
+      if self._print:
+        print(f'  fitness: {score}\n')
+
+    return score_from_sample
 
   # def canonical_algorithm(self):
   #   pass

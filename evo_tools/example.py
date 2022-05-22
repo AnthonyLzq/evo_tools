@@ -17,7 +17,7 @@ population = Population(
   _print = True
 )
 initial_population = population.select_initial_population(8)
-# population.print()
+population.print()
 # print(loads(str(initial_population)))
 
 # population.fitness(variables, f)
