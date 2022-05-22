@@ -1,5 +1,5 @@
-from json import dumps
-from sympy import *
+from json import dumps, loads
+from sympy import symbols
 
 from evo_tools.population import Population
 
@@ -17,9 +17,10 @@ population = Population(
   _print = True
 )
 initial_population = population.select_initial_population(8)
-print(dumps(initial_population, indent = 2), end = '\n\n')
+# population.print()
+# print(loads(str(initial_population)))
 
-population.fitness(variables, f)
-population.crossover()
-new_data = population.get_current_population()
-print(dumps(new_data, indent = 2), end = '\n\n')
+# population.fitness(variables, f)
+# population.crossover()
+# new_data = population.get_current_population()
+# print(dumps(new_data, indent = 2), end = '\n\n')

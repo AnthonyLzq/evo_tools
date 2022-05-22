@@ -4,6 +4,7 @@ from functools import reduce
 from sympy import exp
 from typing import List, Tuple, Union
 from sys import version_info
+from json import dumps
 
 if version_info >= (3, 8):
   from typing import TypedDict
@@ -13,33 +14,43 @@ else:
 from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from evo_tools.helpers import sub_strings_by_array
 
-class Sample(TypedDict):
-  """
-  A custom dict model which represents a sample.
-  """
-  binaries: List[str]
-  grays: List[str]
-  bits: List[int]
-  scores: List[float]
+class Individual():
+  def __init__(
+    self,
+    binary: str,
+    gray: str,
+    score: float,
+    bits: List[int]
+  ) -> None:
+    self._binary = binary
+    self._gray = gray
+    self._score = score
+    self._bits = bits
 
-class PopulationMember():
+  def __str__(self) -> str:
+    return f'{{ "binary": "{self._binary}", "gray": "{self._gray}", "score": "{self._score}", "bits": {self._bits} }}'
+
+  def __repr__(self) -> str:
+    return str(self)
+
+class SubPopulation():
   """
-  A class to represent a PopulationMember
+  A class to represent a SubPopulation
   --
 
-  A PopulationMember is nothing but a object that represents a real range (float interval).
+  A SubPopulation is nothing but a object that represents a real range (float interval).
   So, a Population is build with several ranges, with its representation in binary
   and gray code and the number of bits that are used to represent the range.
 
   For example, lets say you want to create a Population of one range: [1, 2],
-  with a precision of 0.1, then we will only have an array of PopulationMember,
+  with a precision of 0.1, then we will only have an array of SubPopulation,
   whose len will be one, and that only member will store its class attributes as follows:
 
   Attributes
   --
 
   rng: Tuple[Union[float, int], Union[float, int]]
-    The range specified for this PopulationMember, for this case (1, 2)
+    The range specified for this SubPopulation, for this case (1, 2)
 
   numbers: List[NumberBinaryAndGray]
     Where NumberBinaryAndGray is a dictionary with 3 keys:
@@ -71,7 +82,7 @@ class PopulationMember():
     self.bits = bits
 
   def __str__(self) -> str:
-    return f'"rng": {self.rng}, "numbers": {self.numbers}, "bits": {self.bits}'
+    return f'{{ "rng": {self.rng}, "numbers": {self.numbers}, "bits": {self.bits} }}'
 
 class Population():
   """
@@ -83,8 +94,8 @@ class Population():
   Attributes
   --
 
-  _population_members: List[:class:`PopulationMember`]
-    A list of every PopulationMember from the Population, which is defined by
+  _sub_populations: List[:class:`SubPopulation`]
+    A list of every SubPopulation from the Population, which is defined by
     the range.
 
   _precision: Union[float, int]
@@ -149,60 +160,57 @@ class Population():
     if len(ranges) == 0:
       raise Exception('At least one range is required')
 
-    self._population_members: List[PopulationMember] = []
+    self._sub_populations: List[SubPopulation] = []
     self._precision = precision
     self._crossover_rate = crossover_rate
     self._mutation_rate = mutation_rate
     self._variables = variables
     self._function = function
     self._print = _print
+    self._current_population: List[Individual] = []
+    self._initial_population: List[Individual] = []
 
     p10 = pow(precision, -1) if precision != 1 else 1
     self._n_decimal_digits = int(round(log(p10, 10)))
 
     for rng in ranges:
-      population_range, bits = range_of_numbers_binary_and_gray(
+      sub_population_range, bits = range_of_numbers_binary_and_gray(
         rng,
         self._precision
       )
-      self._population_members.append(
-        PopulationMember(rng, population_range, bits)
+      self._sub_populations.append(
+        SubPopulation(rng, sub_population_range, bits)
       )
 
-    self._max_sample_size = len(self._population_members[0].numbers)
+    self._max_sample_size = len(self._sub_populations[0].numbers)
 
-    for population_member in self._population_members:
-      aux = len(population_member.numbers)
+    for sub_population in self._sub_populations:
+      aux = len(sub_population.numbers)
 
       if aux < self._max_sample_size:
         self._max_sample_size = aux
 
     variables_array = self._variables.split()
 
-    if (len(variables_array) != len(self._population_members)):
+    if (len(variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
   def print(self):
     """
     Prints the current Population data. The current sample and the data from each
-    PopulationMember.
+    SubPopulation.
     """
     print('\nCurrent population sample:\n')
     print(self._current_population)
     print('\nData from population members:')
 
-    for population_member in self._population_members:
-      print('\nRange:\n')
-      print(population_member.rng)
-      print()
-      print('\nBits:\n')
-      print(population_member.bits)
-      print()
-      print('\nNumbers:\n')
-      print(population_member.numbers)
+    for i, sub_population in enumerate(self._sub_populations):
+      print(f'  {i + 1}. Range:', sub_population.rng)
+      print(f'  {i + 1}. Bits:', sub_population.bits)
+      print(f'  {i + 1}. Numbers:', sub_population.numbers)
       print()
 
-  def select_initial_population(self, sample_size: int) -> Sample:
+  def select_initial_population(self, sample_size: int) -> List[Individual]:
     """
     Method that selects the initial sample (randomly) of the Population.
 
@@ -225,340 +233,354 @@ class Population():
         f'Sample size too big, maximum is: {self._max_sample_size}'
       )
 
-    try:
+    if len(self._initial_population) > 0:
       if self._print:
         print('\nInitial population:\n')
         print(self._initial_population)
 
-      return self._initial_population
-    except:
-      samples: List[List[NumberBinaryAndGray]] = []
-      bits = []
+      return self._initial_population.copy()
+    else:
+      samples: List[Tuple[List[NumberBinaryAndGray], int]] = []
       binaries = []
       grays = []
       scores = []
 
-      for population_member in self._population_members:
-        samples.append(
-          sample(population_member.numbers, sample_size)
-        )
+      for sub_population in self._sub_populations:
+        samples.append((
+          sample(sub_population.numbers, sample_size),
+          sub_population.bits
+        ))
 
-      f_sample = samples[0]
+      f_sample, _ = samples[0]
 
       for i, __ in enumerate(f_sample):
-        binary = ''
-        gray = ''
+        binary: str = ''
+        gray: str = ''
+        bits: List[int] = []
 
-        for j, _ in enumerate(self._population_members):
-          binary += samples[j][i]['binary']
-          gray += samples[j][i]['gray']
+        for j, _ in enumerate(self._sub_populations):
+          current_sample, current_bits = samples[j]
+          bits.append(current_bits)
+          binary += current_sample[i]['binary']
+          gray += current_sample[i]['gray']
 
         binaries.append(binary)
         grays.append(gray)
         scores.append(0)
+        self._initial_population.append(Individual(binary, gray, 0, bits))
 
-      for population_member in self._population_members:
-        bits.append(population_member.bits)
-
-      self._initial_population: Sample = {
-        'binaries': binaries,
-        'grays': grays,
-        'bits': bits,
-        'scores': scores
-      }
       self._current_population = self._initial_population.copy()
+
+      if self._print:
+        print('\nInitial population:\n')
+        print(self._initial_population)
+        print(self._initial_population)
 
       return self._current_population.copy()
 
-  def get_current_population(self):
+  def get_current_population(self) -> List[Individual]:
     """
     Returns a copy of the current Population data.
 
-    Returns: :class:`Sample`
+    Returns:
+      List[Individual]
     """
     return self._current_population.copy()
 
-  def get_sample_from_population(self, sample_size: int) -> Sample:
-    """
-    Method that selects a new sample randomly base on the following probability:
-    fitness(i) / fitness_population
+  # def get_sample_from_population(self, sample_size: int) -> Sample:
+  #   """
+  #   Method that selects a new sample randomly base on the following probability:
+  #   fitness(i) / fitness_population
 
-    Args:
-      sample_size: int
+  #   Args:
+  #     sample_size: int
 
-    Returns: :class:`Sample`
-    """
-    current_population_score = reduce(
-      lambda a, b: a + b,
-      self._current_population['scores']
-    )
+  #   Returns: :class:`Sample`
+  #   """
+  #   current_population_score = reduce(
+  #     lambda a, b: a + b,
+  #     self._current_population['scores']
+  #   )
 
-    if current_population_score == 0:
-      raise Exception('Fitness has to be calculated first.')
+  #   if current_population_score == 0:
+  #     raise Exception('Fitness has to be calculated first.')
 
-    new_binaries: list(str) = []
-    new_grays: list(str) = []
-    new_scores: list(str) = []
+  #   new_binaries: list(str) = []
+  #   new_grays: list(str) = []
+  #   new_scores: list(str) = []
 
-    for i, individual in enumerate(self._current_population['binaries']):
-      if random() < self._current_population['scores'][i] / current_population_score:
-        new_binaries.append(individual)
-        new_grays.append(self._current_population['grays'][i])
-        new_scores.append(self._current_population['scores'][i])
+  #   for i, individual in enumerate(self._current_population['binaries']):
+  #     if random() < self._current_population['scores'][i] / current_population_score:
+  #       new_binaries.append(individual)
+  #       new_grays.append(self._current_population['grays'][i])
+  #       new_scores.append(self._current_population['scores'][i])
 
-    new_binaries_length = len(new_binaries)
+  #   new_binaries_length = len(new_binaries)
 
-    if new_binaries_length < sample_size:
-      elements_to_add = sample_size - new_binaries_length
+  #   if new_binaries_length < sample_size:
+  #     elements_to_add = sample_size - new_binaries_length
 
-      for _ in range(elements_to_add):
-        index = randint(0, len(self._current_population['binaries']))
-        new_binaries.append(self._current_population['binaries'][index])
-        new_grays.append(self._current_population['grays'][index])
-        new_scores.append(self._current_population['scores'][index])
-    elif new_binaries_length > sample_size:
-      elements_to_eliminate = new_binaries_length - sample_size
+  #     for _ in range(elements_to_add):
+  #       index = randint(0, len(self._current_population['binaries']))
+  #       new_binaries.append(self._current_population['binaries'][index])
+  #       new_grays.append(self._current_population['grays'][index])
+  #       new_scores.append(self._current_population['scores'][index])
+  #   elif new_binaries_length > sample_size:
+  #     elements_to_eliminate = new_binaries_length - sample_size
 
-      for _ in range(elements_to_eliminate):
-        index = randint(0, len(new_binaries))
-        new_binaries = new_binaries[:index] + new_binaries[index + 1:]
-        new_grays = new_grays[:index] + new_grays[index + 1:]
-        new_scores = new_scores[:index] + new_scores[index + 1:]
+  #     for _ in range(elements_to_eliminate):
+  #       index = randint(0, len(new_binaries))
+  #       new_binaries = new_binaries[:index] + new_binaries[index + 1:]
+  #       new_grays = new_grays[:index] + new_grays[index + 1:]
+  #       new_scores = new_scores[:index] + new_scores[index + 1:]
 
-    return {
-      'binaries': new_binaries,
-      'grays': new_grays,
-      'scores': new_scores,
-      'bits': self._current_data['bits']
-    }
+  #   return {
+  #     'binaries': new_binaries,
+  #     'grays': new_grays,
+  #     'scores': new_scores,
+  #     'bits': self._current_data['bits']
+  #   }
 
-  def update_current_data(
-    self,
-    binaries: List[str],
-    grays: List[str],
-    scores: List[float]
-  ) -> None:
-    """
-    Method that updates the current sample, after crossover or mutation.
+  # def update_current_data(
+  #   self,
+  #   binaries: List[str],
+  #   grays: List[str],
+  #   scores: List[float]
+  # ) -> None:
+  #   """
+  #   Method that updates the current sample, after crossover or mutation.
 
-    Args:
-      binaries: List[str]
-        New list of binaries
-      grays List[str]
-        New list of grays
-    """
-    self._current_population: Sample = {
-      'binaries': binaries,
-      'grays': grays,
-      'scores': scores,
-      'bits': self._current_population['bits']
-    }
+  #   Args:
+  #     binaries: List[str]
+  #       New list of binaries
+  #     grays List[str]
+  #       New list of grays
+  #   """
+  #   self._current_population: Sample = {
+  #     'binaries': binaries,
+  #     'grays': grays,
+  #     'scores': scores,
+  #     'bits': self._current_population['bits']
+  #   }
 
-  def select(self, sample_size: int) -> None:
-    """
-    Method that creates a new sample and update the current sample with the new one.
+  # def select(self, sample_size: int) -> None:
+  #   """
+  #   Method that creates a new sample and update the current sample with the new one.
 
-    Args:
-      sample_size:int
+  #   Args:
+  #     sample_size:int
 
-    Raises:
-      Exception: when the sample size is too big or the initial data was not selected.
-    """
+  #   Raises:
+  #     Exception: when the sample size is too big or the initial data was not selected.
+  #   """
 
-    if (sample_size > self._max_sample_size):
-      raise Exception(
-        f'Sample size too big, maximum is: {self._max_sample_size}'
-      )
+  #   if (sample_size > self._max_sample_size):
+  #     raise Exception(
+  #       f'Sample size too big, maximum is: {self._max_sample_size}'
+  #     )
 
-    try:
-      sample_data = self.get_sample_from_population(sample_size)
-      self.update_current_data(
-        sample_data['binaries'],
-        sample_data['grays'],
-        sample_data['scores']
-      )
+  #   try:
+  #     sample_data = self.get_sample_from_population(sample_size)
+  #     self.update_current_data(
+  #       sample_data['binaries'],
+  #       sample_data['grays'],
+  #       sample_data['scores']
+  #     )
 
-      if self._print:
-        print('\nSelection: \n')
-        print(self._current_population)
-    except:
-      raise Exception(
-        'Select initial data was not invoked at the beginning. It must be.'
-      )
+  #     if self._print:
+  #       print('\nSelection: \n')
+  #       print(self._current_population)
+  #   except:
+  #     raise Exception(
+  #       'Select initial data was not invoked at the beginning. It must be.'
+  #     )
 
-  def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
-    """
-    Method that validates if a given list of binaries are in the domain.
+  # def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
+  #   """
+  #   Method that validates if a given list of binaries are in the domain.
 
-    Args:
-      binaries: List[List[str]]
-        List genotypes from each PopulationMember.
+  #   Args:
+  #     binaries: List[List[str]]
+  #       List genotypes from each SubPopulation.
 
-    Returns:
-      bool: whether or not binaries are valid
-    """
-    for b in binaries:
-      for i, gen in enumerate(b):
-        try:
-          _range = self._population_members[i].rng
-          fen = binary_to_float(gen, _range, self._precision)
-          x0, xf = _range
+  #   Returns:
+  #     bool: whether or not binaries are valid
+  #   """
+  #   for b in binaries:
+  #     for i, gen in enumerate(b):
+  #       try:
+  #         _range = self._sub_populations[i].rng
+  #         fen = binary_to_float(gen, _range, self._precision)
+  #         x0, xf = _range
 
-          if float(fen['number']) < x0 or float(fen['number']) > xf:
-            return False
-        except:
-          return False
+  #         if float(fen['number']) < x0 or float(fen['number']) > xf:
+  #           return False
+  #       except:
+  #         return False
 
-    return True
+  #   return True
 
-  def crossover_one_point(self) -> None:
-    """
-    Method that creates 2 children from 2 parents combining their genotype
-    and the crossover probability.
+  # def crossover_one_point(self) -> None:
+  #   """
+  #   Method that creates 2 children from 2 parents combining their genotype
+  #   and the crossover probability.
 
-    Raises:
-      Exception: when the initial data wasn't selected
-    """
-    p = random()
+  #   Raises:
+  #     Exception: when the initial data wasn't selected
+  #   """
+  #   binaries = self._current_population['binaries']
+  #   current_population_score = reduce(
+  #     lambda a, b: a + b,
+  #     self._current_population['scores']
+  #   ) + 100 * len(self._current_population['scores'])
+  #   parents = []
 
-    if random() < self._crossover_rate:
-      if (self._print):
-        print('\nCrossover: \n')
+  #   for i, binary in enumerate(binaries):
+  #     p_i = self._current_population['scores'][i] + 100 / current_population_score
 
-      total_bits = 0
-      bits = []
+  #     if random() < p_i:
+  #       parents.append(binary)
 
-      try:
-        bits = self._current_population['bits']
-        total_bits = reduce(lambda a, b: a + b, self._current_population['bits'])
-        point = randint(0, total_bits - 1)
-        binaries = self._current_population['binaries']
-        grays = self._current_population['grays']
+  #   p = random()
 
-        while True:
-          binary_parent_1, binary_parent_2 = sample(binaries, 2)
+  #   if random() < self._crossover_rate:
+  #     if (self._print):
+  #       print('\nCrossover: \n')
 
-          binary_children = [
-            binary_parent_1[:point] + binary_parent_1[point:],
-            binary_parent_2[:point] + binary_parent_2[point:]
-          ]
+  #     total_bits = 0
+  #     bits = []
 
-          binaries_to_validate = [
-            sub_strings_by_array(binary_children[0], bits),
-            sub_strings_by_array(binary_children[1], bits)
-          ]
-          are_binaries_valid = self.validate_binaries_in_range(
-            binaries_to_validate
-          )
+  #     try:
+  #       bits = self._current_population['bits']
+  #       total_bits = reduce(lambda a, b: a + b, self._current_population['bits'])
+  #       point = randint(0, total_bits - 1)
+  #       binaries = self._current_population['binaries']
+  #       grays = self._current_population['grays']
 
-          if are_binaries_valid:
-            break
+  #       while True:
+  #         binary_parent_1, binary_parent_2 = sample(binaries, 2)
 
-        gray_parent_1 = grays[binaries.index(binary_parent_1)]
-        gray_parent_2 = grays[binaries.index(binary_parent_2)]
+  #         binary_children = [
+  #           binary_parent_1[:point] + binary_parent_1[point:],
+  #           binary_parent_2[:point] + binary_parent_2[point:]
+  #         ]
 
-        gray_children = [
-          gray_parent_1[:point] + gray_parent_1[point:],
-          gray_parent_2[:point] + gray_parent_2[point:]
-        ]
+  #         binaries_to_validate = [
+  #           sub_strings_by_array(binary_children[0], bits),
+  #           sub_strings_by_array(binary_children[1], bits)
+  #         ]
+  #         are_binaries_valid = self.validate_binaries_in_range(
+  #           binaries_to_validate
+  #         )
 
-        if (self._print):
-          print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
-          print(f'binary part 1  : {binary_parent_1[:point]} + {binary_parent_1[point:]}')
-          print(f'binary part 2  : {binary_parent_2[:point]} + {binary_parent_2[point:]}')
-          print(f'binary children: {binary_children}')
-          print()
-          print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
-          print(f'gray part 1  : {gray_parent_1[:point]} + {gray_parent_1[point:]}')
-          print(f'gray part 2  : {gray_parent_2[:point]} + {gray_parent_2[point:]}')
-          print(f'gray children: {gray_children}')
+  #         if are_binaries_valid:
+  #           break
 
-        binaries += binary_children
-        grays += gray_children
+  #       gray_parent_1 = grays[binaries.index(binary_parent_1)]
+  #       gray_parent_2 = grays[binaries.index(binary_parent_2)]
 
-        self.update_current_data(binaries, grays)
-      except:
-        raise Exception(
-          'Select initial data was not invoked at the beginning. It must be.'
-        )
-    elif self._print:
-      print(f'Crossover failed because p = {p} < {self._crossover_rate}')
+  #       gray_children = [
+  #         gray_parent_1[:point] + gray_parent_1[point:],
+  #         gray_parent_2[:point] + gray_parent_2[point:]
+  #       ]
 
-  def mutation(self) -> None:
-    """
-    Method that changes 1 bit from a children based in the mutation probability.
+  #       if (self._print):
+  #         print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
+  #         print(f'binary part 1  : {binary_parent_1[:point]} + {binary_parent_1[point:]}')
+  #         print(f'binary part 2  : {binary_parent_2[:point]} + {binary_parent_2[point:]}')
+  #         print(f'binary children: {binary_children}')
+  #         print()
+  #         print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
+  #         print(f'gray part 1  : {gray_parent_1[:point]} + {gray_parent_1[point:]}')
+  #         print(f'gray part 2  : {gray_parent_2[:point]} + {gray_parent_2[point:]}')
+  #         print(f'gray children: {gray_children}')
 
-    Raises:
-      Exception: when the initial data wasn't selected.
-    """
-    p = random()
+  #       binaries += binary_children
+  #       grays += gray_children
 
-    if p < self._mutation_rate:
-      if (self._print):
-        print('\nMutation: \n')
+  #       self.update_current_data(binaries, grays)
+  #     except:
+  #       raise Exception(
+  #         'Select initial data was not invoked at the beginning. It must be.'
+  #       )
+  #   elif self._print:
+  #     print(f'Crossover failed because p = {p} < {self._crossover_rate}')
 
-      try:
-        binaries = self._current_population['binaries']
-        grays = self._current_population['grays']
+  # def mutation(self) -> None:
+  #   """
+  #   Method that changes 1 bit from a children based in the mutation probability.
 
-        if (self._print):
-          print(f'binaries before mutation: {binaries}')
-          print(f'grays before mutation: {grays}')
-          print()
+  #   Raises:
+  #     Exception: when the initial data wasn't selected.
+  #   """
+  #   p = random()
 
-        binary_selected = sample(binaries, 1)[0]
-        index = binaries.index(binary_selected)
-        gray_selected = grays[index]
+  #   if p < self._mutation_rate:
+  #     if (self._print):
+  #       print('\nMutation: \n')
 
-        binaries = binaries[:index] \
-          + [mutate_binary_or_gray(binary_selected)] \
-          + binaries[index + 1:]
-        grays = grays[:index] \
-          + [mutate_binary_or_gray(gray_selected)] \
-          + grays[index + 1:]
+  #     try:
+  #       binaries = self._current_population['binaries']
+  #       grays = self._current_population['grays']
 
-        self.update_current_data(binaries, grays)
-      except:
-        raise Exception(
-          'Select initial data was not invoked at the beginning. It must be.'
-        )
-    elif self._print:
-      print(f'Crossover failed because p = {p} < {self._crossover_rate}')
+  #       if (self._print):
+  #         print(f'binaries before mutation: {binaries}')
+  #         print(f'grays before mutation: {grays}')
+  #         print()
 
-  def fitness(self):
-    """
-    Method that calculates the fitness genotype of a given function for the
-    current population.
-    """
-    variables_array = self._variables.split()
-    binaries = self._current_population['binaries']
-    # grays = self._current_population['grays']
-    bits = self._current_population['bits']
+  #       binary_selected = sample(binaries, 1)[0]
+  #       index = binaries.index(binary_selected)
+  #       gray_selected = grays[index]
 
-    for i, chromosome in enumerate(binaries):
-      if (self._print):
-        print(f'Chromosome {i}: {chromosome}')
+  #       binaries = binaries[:index] \
+  #         + [mutate_binary_or_gray(binary_selected)] \
+  #         + binaries[index + 1:]
+  #       grays = grays[:index] \
+  #         + [mutate_binary_or_gray(gray_selected)] \
+  #         + grays[index + 1:]
 
-      gens = sub_strings_by_array(chromosome, bits)
-      fens: List[float] = []
+  #       self.update_current_data(binaries, grays)
+  #     except:
+  #       raise Exception(
+  #         'Select initial data was not invoked at the beginning. It must be.'
+  #       )
+  #   elif self._print:
+  #     print(f'Crossover failed because p = {p} < {self._crossover_rate}')
 
-      for i, gen in enumerate(gens):
-        _range = self._population_members[i].rng
-        fen = float(binary_to_float(gen, _range, self._precision)['number'])
-        fens.append(fen)
+  # def fitness(self):
+  #   """
+  #   Method that calculates the fitness genotype of a given function for the
+  #   current population.
+  #   """
+  #   variables_array = self._variables.split()
+  #   binaries = self._current_population['binaries']
+  #   # grays = self._current_population['grays']
+  #   bits = self._current_population['bits']
 
-      if (self._print):
-        print(f'gens: {gens}')
-        print(f'fens: {fens}')
+  #   for i, chromosome in enumerate(binaries):
+  #     if (self._print):
+  #       print(f'Chromosome {i}: {chromosome}')
 
-      fitness = self._function.copy()
+  #     gens = sub_strings_by_array(chromosome, bits)
+  #     fens: List[float] = []
 
-      for i, v in enumerate(variables_array):
-        fitness = fitness.subs(v, fens[i])
+  #     for i, gen in enumerate(gens):
+  #       _range = self._sub_populations[i].rng
+  #       fen = float(binary_to_float(gen, _range, self._precision)['number'])
+  #       fens.append(fen)
 
-      final_fitness = format(fitness, f'.{self._n_decimal_digits}f')
-      print(f'fitness: {final_fitness}')
-      print()
+  #     if (self._print):
+  #       print(f'gens: {gens}')
+  #       print(f'fens: {fens}')
 
-  def canonical_algorithm(self):
-    pass
+  #     fitness = self._function.copy()
+
+  #     for i, v in enumerate(variables_array):
+  #       fitness = fitness.subs(v, fens[i])
+
+  #     final_fitness = format(fitness, f'.{self._n_decimal_digits}f')
+  #     print(f'fitness: {final_fitness}')
+  #     print()
+
+  # def canonical_algorithm(self):
+  #   pass

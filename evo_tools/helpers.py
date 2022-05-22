@@ -39,6 +39,3 @@ def sub_strings_by_array(s: str, l: List[int]) -> List[str]:
     i += 1
 
   return sub_strings
-
-result = sub_strings_by_array('101101101110', [2, 3, 5, 2])
-print(result)
