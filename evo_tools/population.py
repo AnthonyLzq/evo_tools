@@ -11,7 +11,7 @@ if version_info >= (3, 8):
 else:
   from typing_extensions import TypedDict
 
-from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, mutate_binary_or_gray, range_of_numbers_binary_and_gray
+from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from evo_tools.helpers import sub_strings_by_array
 
 class Individual():
@@ -485,46 +485,53 @@ class Population():
 
     return children
 
-  # def mutation(self) -> None:
-  #   """
-  #   Method that changes 1 bit from a children based in the mutation probability.
+  def mutation(self, children: List[Individual]) -> None:
+    """
+    Method that changes 1 bit from a children based on the mutation probability.
 
-  #   Raises:
-  #     Exception: when the initial data wasn't selected.
-  #   """
-  #   p = random()
+    Args:
+      children (List[Individual]): children mutated
+    """
+    if self._print:
+      print(f'\nPopulation children before mutation: {children}\n')
+      print()
 
-  #   if p < self._mutation_rate:
-  #     if (self._print):
-  #       print('\nMutation: \n')
+    mutated_children: List[Individual] = []
 
-  #     try:
-  #       binaries = self._current_population['binaries']
-  #       grays = self._current_population['grays']
+    for child in children:
+      mutated_children.append(child)
 
-  #       if (self._print):
-  #         print(f'binaries before mutation: {binaries}')
-  #         print(f'grays before mutation: {grays}')
-  #         print()
+      if random() < self._mutation_rate:
+        if (self._print):
+          print(f'  Mutation for child: {child}\n')
 
-  #       binary_selected = sample(binaries, 1)[0]
-  #       index = binaries.index(binary_selected)
-  #       gray_selected = grays[index]
+        while True:
+          binary = mutate_binary_or_gray(child.get_binary())
+          gray = binary_to_gray(binary)
+          bits = child.get_bits()
+          binaries_to_validate = [
+            sub_strings_by_array(binary, bits),
+            sub_strings_by_array(gray, bits)
+          ]
 
-  #       binaries = binaries[:index] \
-  #         + [mutate_binary_or_gray(binary_selected)] \
-  #         + binaries[index + 1:]
-  #       grays = grays[:index] \
-  #         + [mutate_binary_or_gray(gray_selected)] \
-  #         + grays[index + 1:]
+          are_binaries_valid = self.validate_binaries_in_range(
+              binaries_to_validate
+            )
 
-  #       self.update_current_data(binaries, grays)
-  #     except:
-  #       raise Exception(
-  #         'Select initial data was not invoked at the beginning. It must be.'
-  #       )
-  #   elif self._print:
-  #     print(f'Crossover failed because p = {p} < {self._crossover_rate}')
+          if are_binaries_valid:
+            mutated_child = Individual(binary, gray, 0, bits)
+            mutated_children_length = len(mutated_children)
+            mutated_children = mutated_children[:mutated_children_length - 1] \
+              + [mutated_child]
+
+            if (self._print):
+              print(f'  Mutation for child completed: {mutated_child}\n')
+
+            break
+
+    if self._print:
+      print(f'\nPopulation children after mutation: {mutated_children}\n')
+      print()
 
   # def fitness(self):
   #   """
