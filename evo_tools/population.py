@@ -27,6 +27,9 @@ class Individual():
     self._score = score
     self._bits = bits
 
+  def get_score(self) -> float:
+    return self._score
+
   def __str__(self) -> str:
     return f'{{ "binary": "{self._binary}", "gray": "{self._gray}", "score": "{self._score}", "bits": {self._bits} }}'
 
@@ -202,6 +205,7 @@ class Population():
     """
     print('\nCurrent population sample:\n')
     print(self._current_population)
+    print()
     print('\nData from population members:')
 
     for i, sub_population in enumerate(self._sub_populations):
@@ -223,8 +227,8 @@ class Population():
       size (the lowest range size from the domain).
 
     Returns:
-      Sample: A dict with a binaries, grays and floating numbers list, all of them
-      represented with strings: :class:`Sample`
+      List[Individual]: A list of List[:class:`Individual`] which represents the
+      initial population
     """
     self._sample_size = sample_size
 
@@ -287,113 +291,87 @@ class Population():
     """
     return self._current_population.copy()
 
-  # def get_sample_from_population(self, sample_size: int) -> Sample:
-  #   """
-  #   Method that selects a new sample randomly base on the following probability:
-  #   fitness(i) / fitness_population
+  def get_sample_from_population(self, sample_size: int) -> List[Individual]:
+    """
+    Method that selects a new sample randomly base on the following probability:
+    fitness(i) / fitness_population
 
-  #   Args:
-  #     sample_size: int
+    Args:
+      sample_size: int
 
-  #   Returns: :class:`Sample`
-  #   """
-  #   current_population_score = reduce(
-  #     lambda a, b: a + b,
-  #     self._current_population['scores']
-  #   )
+    Raises:
+      Exception: if the fitness was not calculated
 
-  #   if current_population_score == 0:
-  #     raise Exception('Fitness has to be calculated first.')
+    Returns:
+      List[Individual]: new current population
+    """
+    current_population_score = reduce(
+      lambda acc, individual: acc + individual.get_score(),
+      self._current_population,
+      0
+    )
 
-  #   new_binaries: list(str) = []
-  #   new_grays: list(str) = []
-  #   new_scores: list(str) = []
+    if current_population_score == 0:
+      raise Exception('Fitness has to be calculated first.')
 
-  #   for i, individual in enumerate(self._current_population['binaries']):
-  #     if random() < self._current_population['scores'][i] / current_population_score:
-  #       new_binaries.append(individual)
-  #       new_grays.append(self._current_population['grays'][i])
-  #       new_scores.append(self._current_population['scores'][i])
+    new_population: List[Individual] = []
 
-  #   new_binaries_length = len(new_binaries)
+    for individual in self._current_population:
+      if random() < individual.get_score() / current_population_score:
+        new_population.append(individual)
 
-  #   if new_binaries_length < sample_size:
-  #     elements_to_add = sample_size - new_binaries_length
+    new_population_length = len(new_population)
 
-  #     for _ in range(elements_to_add):
-  #       index = randint(0, len(self._current_population['binaries']))
-  #       new_binaries.append(self._current_population['binaries'][index])
-  #       new_grays.append(self._current_population['grays'][index])
-  #       new_scores.append(self._current_population['scores'][index])
-  #   elif new_binaries_length > sample_size:
-  #     elements_to_eliminate = new_binaries_length - sample_size
+    if new_population_length < sample_size:
+      elements_to_add = sample_size - new_population_length
 
-  #     for _ in range(elements_to_eliminate):
-  #       index = randint(0, len(new_binaries))
-  #       new_binaries = new_binaries[:index] + new_binaries[index + 1:]
-  #       new_grays = new_grays[:index] + new_grays[index + 1:]
-  #       new_scores = new_scores[:index] + new_scores[index + 1:]
+      for _ in range(elements_to_add):
+        index = randint(0, len(self._current_population))
+        new_population.append(self._current_population[index])
+    elif new_population_length > sample_size:
+      elements_to_eliminate = new_population_length - sample_size
 
-  #   return {
-  #     'binaries': new_binaries,
-  #     'grays': new_grays,
-  #     'scores': new_scores,
-  #     'bits': self._current_data['bits']
-  #   }
+      for _ in range(elements_to_eliminate):
+        index = randint(0, len(new_population))
+        new_population = new_population[:index] + new_population[index + 1:]
 
-  # def update_current_data(
-  #   self,
-  #   binaries: List[str],
-  #   grays: List[str],
-  #   scores: List[float]
-  # ) -> None:
-  #   """
-  #   Method that updates the current sample, after crossover or mutation.
+    return new_population
 
-  #   Args:
-  #     binaries: List[str]
-  #       New list of binaries
-  #     grays List[str]
-  #       New list of grays
-  #   """
-  #   self._current_population: Sample = {
-  #     'binaries': binaries,
-  #     'grays': grays,
-  #     'scores': scores,
-  #     'bits': self._current_population['bits']
-  #   }
+  def update_current_data(self, new_population: List[Individual]) -> None:
+    """
+    Method that updates the current sample, after crossover or mutation.
 
-  # def select(self, sample_size: int) -> None:
-  #   """
-  #   Method that creates a new sample and update the current sample with the new one.
+    Args:
+      new_population: List[Individual]
+    """
+    self._current_population = new_population
 
-  #   Args:
-  #     sample_size:int
+  def select(self, sample_size: int) -> None:
+    """
+    Method that creates a new sample and update the current sample with the new one.
 
-  #   Raises:
-  #     Exception: when the sample size is too big or the initial data was not selected.
-  #   """
+    Args:
+      sample_size: int
 
-  #   if (sample_size > self._max_sample_size):
-  #     raise Exception(
-  #       f'Sample size too big, maximum is: {self._max_sample_size}'
-  #     )
+    Raises:
+      Exception: when the sample size is too big or the initial data was not selected.
+    """
+    if (sample_size > self._max_sample_size):
+      raise Exception(
+        f'Sample size too big, maximum is: {self._max_sample_size}'
+      )
 
-  #   try:
-  #     sample_data = self.get_sample_from_population(sample_size)
-  #     self.update_current_data(
-  #       sample_data['binaries'],
-  #       sample_data['grays'],
-  #       sample_data['scores']
-  #     )
+    try:
+      sample_population = self.get_sample_from_population(sample_size)
+      self.update_current_data(sample_population)
 
-  #     if self._print:
-  #       print('\nSelection: \n')
-  #       print(self._current_population)
-  #   except:
-  #     raise Exception(
-  #       'Select initial data was not invoked at the beginning. It must be.'
-  #     )
+      if self._print:
+        print('\nSelection: \n')
+        print(self._current_population)
+    except:
+      raise Exception(
+        'Select initial data was not invoked at the beginning. It must be.'
+      )
 
   # def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
   #   """
