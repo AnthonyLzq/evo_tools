@@ -1,4 +1,4 @@
-from random import sample, random, randint
+from random import choice, sample, random, randint, shuffle
 from math import log
 from functools import reduce
 from sympy import exp
@@ -27,8 +27,20 @@ class Individual():
     self._score = score
     self._bits = bits
 
+  def get_binary(self) -> str:
+    return self._binary
+
+  def get_gray(self) -> str:
+    return self._gray
+
   def get_score(self) -> float:
     return self._score
+
+  def get_bits(self) -> List[int]:
+    return self._bits.copy()
+
+  def get_total_bits(self) -> int:
+    return reduce(lambda a, b: a + b, self._bits)
 
   def __str__(self) -> str:
     return f'{{ "binary": "{self._binary}", "gray": "{self._gray}", "score": "{self._score}", "bits": {self._bits} }}'
@@ -373,116 +385,105 @@ class Population():
         'Select initial data was not invoked at the beginning. It must be.'
       )
 
-  # def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
-  #   """
-  #   Method that validates if a given list of binaries are in the domain.
+  def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
+    """
+    Method that validates if a given list of binaries are in the domain.
 
-  #   Args:
-  #     binaries: List[List[str]]
-  #       List genotypes from each SubPopulation.
+    Args:
+      binaries: List[List[str]]
+        List genotypes from each SubPopulation.
 
-  #   Returns:
-  #     bool: whether or not binaries are valid
-  #   """
-  #   for b in binaries:
-  #     for i, gen in enumerate(b):
-  #       try:
-  #         _range = self._sub_populations[i].rng
-  #         fen = binary_to_float(gen, _range, self._precision)
-  #         x0, xf = _range
+    Returns:
+      bool: whether or not binaries are valid
+    """
+    for b in binaries:
+      for i, gen in enumerate(b):
+        try:
+          _range = self._sub_populations[i].rng
+          fen = binary_to_float(gen, _range, self._precision)
+          x0, xf = _range
 
-  #         if float(fen['number']) < x0 or float(fen['number']) > xf:
-  #           return False
-  #       except:
-  #         return False
+          if float(fen['number']) < x0 or float(fen['number']) > xf:
+            return False
+        except:
+          return False
 
-  #   return True
+    return True
 
-  # def crossover_one_point(self) -> None:
-  #   """
-  #   Method that creates 2 children from 2 parents combining their genotype
-  #   and the crossover probability.
+  def crossover_one_point(self) -> List[Individual]:
+    """
+    Method that creates n children from 2 * n parents combining their genotype
+    based in the crossover probability.
 
-  #   Raises:
-  #     Exception: when the initial data wasn't selected
-  #   """
-  #   binaries = self._current_population['binaries']
-  #   current_population_score = reduce(
-  #     lambda a, b: a + b,
-  #     self._current_population['scores']
-  #   ) + 100 * len(self._current_population['scores'])
-  #   parents = []
+    Raises:
+      Exception: when the initial data wasn't selected
 
-  #   for i, binary in enumerate(binaries):
-  #     p_i = self._current_population['scores'][i] + 100 / current_population_score
+    Returns:
+      List[Individual]: n children
+    """
+    current_population_score = reduce(
+      lambda a, b: a + b.get_score(),
+      self._current_population,
+      0
+    ) + 100 * len(self._current_population)
+    parents: List[Individual] = []
 
-  #     if random() < p_i:
-  #       parents.append(binary)
+    for individual in self._current_population:
+      p_i = individual.get_score() + 100 / current_population_score
 
-  #   p = random()
+      if random() < p_i:
+        parents.append(individual)
 
-  #   if random() < self._crossover_rate:
-  #     if (self._print):
-  #       print('\nCrossover: \n')
+    parents_length = len(parents)
 
-  #     total_bits = 0
-  #     bits = []
+    # If parents length is odd, a random parent will be removed
+    if len(parents) % 2 != 0:
+      index = randint(0, parents_length)
+      parents = parents[:index] + parents[index + 1:]
+      parents_length -= 1
 
-  #     try:
-  #       bits = self._current_population['bits']
-  #       total_bits = reduce(lambda a, b: a + b, self._current_population['bits'])
-  #       point = randint(0, total_bits - 1)
-  #       binaries = self._current_population['binaries']
-  #       grays = self._current_population['grays']
+    shuffle(parents)
+    parents_in_pairs = [parents[i:i + 2] for i in range(0, parents_length, 2)]
+    total_bits = parents[0].get_total_bits()
+    bits = parents[0].get_bits()
+    children: List[Individual] = []
 
-  #       while True:
-  #         binary_parent_1, binary_parent_2 = sample(binaries, 2)
+    for p_parent in parents_in_pairs:
+      if random() < self._crossover_rate:
+        p1, p2 = p_parent
+        point = randint(0, total_bits - 1)
+        binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
+        gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
+        binary_children: List[str] = []
+        gray_children: List[str] = []
 
-  #         binary_children = [
-  #           binary_parent_1[:point] + binary_parent_1[point:],
-  #           binary_parent_2[:point] + binary_parent_2[point:]
-  #         ]
+        while True:
+          binary_children = [
+            binary_p1[:point] + binary_p2[point:],
+            binary_p2[:point] + binary_p1[point:]
+          ]
+          gray_children = [
+            gray_p1[:point] + gray_p2[point:],
+            gray_p2[:point] + gray_p1[point:]
+          ]
+          binaries_to_validate = [
+            sub_strings_by_array(binary_children[0], bits),
+            sub_strings_by_array(binary_children[1], bits),
+            sub_strings_by_array(gray_children[0], bits),
+            sub_strings_by_array(gray_children[1], bits)
+          ]
+          are_binaries_valid = self.validate_binaries_in_range(
+              binaries_to_validate
+            )
 
-  #         binaries_to_validate = [
-  #           sub_strings_by_array(binary_children[0], bits),
-  #           sub_strings_by_array(binary_children[1], bits)
-  #         ]
-  #         are_binaries_valid = self.validate_binaries_in_range(
-  #           binaries_to_validate
-  #         )
+          if are_binaries_valid:
+            break
 
-  #         if are_binaries_valid:
-  #           break
+        binary_child = choice(binary_children)
+        gray_child = choice(gray_children)
+        children.append(Individual(binary_child, gray_child, 0, bits))
 
-  #       gray_parent_1 = grays[binaries.index(binary_parent_1)]
-  #       gray_parent_2 = grays[binaries.index(binary_parent_2)]
-
-  #       gray_children = [
-  #         gray_parent_1[:point] + gray_parent_1[point:],
-  #         gray_parent_2[:point] + gray_parent_2[point:]
-  #       ]
-
-  #       if (self._print):
-  #         print(f'binary parents : {[binary_parent_1, binary_parent_2]}')
-  #         print(f'binary part 1  : {binary_parent_1[:point]} + {binary_parent_1[point:]}')
-  #         print(f'binary part 2  : {binary_parent_2[:point]} + {binary_parent_2[point:]}')
-  #         print(f'binary children: {binary_children}')
-  #         print()
-  #         print(f'gray parents : {[gray_parent_1, gray_parent_2]}')
-  #         print(f'gray part 1  : {gray_parent_1[:point]} + {gray_parent_1[point:]}')
-  #         print(f'gray part 2  : {gray_parent_2[:point]} + {gray_parent_2[point:]}')
-  #         print(f'gray children: {gray_children}')
-
-  #       binaries += binary_children
-  #       grays += gray_children
-
-  #       self.update_current_data(binaries, grays)
-  #     except:
-  #       raise Exception(
-  #         'Select initial data was not invoked at the beginning. It must be.'
-  #       )
-  #   elif self._print:
-  #     print(f'Crossover failed because p = {p} < {self._crossover_rate}')
+    return children
 
   # def mutation(self) -> None:
   #   """
