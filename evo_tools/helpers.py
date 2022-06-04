@@ -39,3 +39,14 @@ def sub_strings_by_array(s: str, l: List[int]) -> List[str]:
     i += 1
 
   return sub_strings
+
+def subsets(elements: List):
+  if elements == []:
+    return [[]]
+
+  x = subsets(elements[1:])
+
+  return x + [[elements[0]] + y for y in x]
+
+def subsets_of_pairs(elements: List):
+  return [x for x in subsets(elements) if len(x) == 2]

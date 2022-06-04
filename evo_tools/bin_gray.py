@@ -155,14 +155,16 @@ def range_of_numbers_binary_and_gray(
       number -= int(x0 * p10)
 
     index = round(i, n_decimal_digits)
-    numbers.append({
-      'number': format(
-        index,
-        f'.{n_decimal_digits}f'
-      ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
-      'binary': format_to_n_bits(int_to_binary(number), bits),
-      'gray': format_to_n_bits(int_to_gray(number), bits)
-    })
+
+    if index <= xf:
+      numbers.append({
+        'number': format(
+          index,
+          f'.{n_decimal_digits}f'
+        ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
+        'binary': format_to_n_bits(int_to_binary(number), bits),
+        'gray': format_to_n_bits(int_to_gray(number), bits)
+      })
 
   return numbers, bits
 

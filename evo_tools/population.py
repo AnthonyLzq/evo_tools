@@ -1,7 +1,7 @@
 from random import choice, sample, random, randint, shuffle
 from math import log
 from functools import reduce
-from sympy import exp
+from sympy import exp, sympify
 from typing import List, Tuple, Union
 from sys import version_info
 from json import dumps
@@ -11,8 +11,8 @@ if version_info >= (3, 8):
 else:
   from typing_extensions import TypedDict
 
-from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, mutate_binary_or_gray, range_of_numbers_binary_and_gray
-from evo_tools.helpers import sub_strings_by_array
+from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
+from evo_tools.helpers import sub_strings_by_array, subsets_of_pairs
 
 class Individual():
   def __init__(
@@ -41,6 +41,9 @@ class Individual():
 
   def get_total_bits(self) -> int:
     return reduce(lambda a, b: a + b, self._bits)
+
+  def set_score(self, score: float) -> None:
+    self._score = score
 
   def __str__(self) -> str:
     return f'{{ "binary": "{self._binary}", "gray": "{self._gray}", "score": "{self._score}", "bits": {self._bits} }}'
@@ -184,6 +187,7 @@ class Population():
     self._print = _print
     self._current_population: List[Individual] = []
     self._initial_population: List[Individual] = []
+    self._best_individual: Individual
 
     p10 = pow(precision, -1) if precision != 1 else 1
     self._n_decimal_digits = int(round(log(p10, 10)))
@@ -226,7 +230,7 @@ class Population():
       print(f'  {i + 1}. Numbers:', sub_population.numbers)
       print()
 
-  def select_initial_population(self, sample_size: int) -> List[Individual]:
+  def _select_initial_population(self, sample_size: int) -> List[Individual]:
     """
     Method that selects the initial sample (randomly) of the Population.
 
@@ -290,11 +294,11 @@ class Population():
       if self._print:
         print('\nInitial population:\n')
         print(self._initial_population)
-        print(self._initial_population)
+        print()
 
       return self._current_population.copy()
 
-  def get_current_population(self) -> List[Individual]:
+  def _get_current_population(self) -> List[Individual]:
     """
     Returns a copy of the current Population data.
 
@@ -303,7 +307,7 @@ class Population():
     """
     return self._current_population.copy()
 
-  def get_sample_from_population(self, sample_size: int) -> List[Individual]:
+  def _get_sample_from_population(self, sample_size: int) -> List[Individual]:
     """
     Method that selects a new sample randomly base on the following probability:
     fitness(i) / fitness_population
@@ -349,7 +353,7 @@ class Population():
 
     return new_population
 
-  def update_current_data(self, new_population: List[Individual]) -> None:
+  def _update_current_population(self, new_population: List[Individual]) -> None:
     """
     Method that updates the current sample, after crossover or mutation.
 
@@ -358,7 +362,7 @@ class Population():
     """
     self._current_population = new_population
 
-  def select(self, sample_size: int) -> None:
+  def _select(self, sample_size: int) -> None:
     """
     Method that creates a new sample and update the current sample with the new one.
 
@@ -374,8 +378,8 @@ class Population():
       )
 
     try:
-      sample_population = self.get_sample_from_population(sample_size)
-      self.update_current_data(sample_population)
+      sample_population = self._get_sample_from_population(sample_size)
+      self._update_current_population(sample_population)
 
       if self._print:
         print('\nSelection: \n')
@@ -385,7 +389,7 @@ class Population():
         'Select initial data was not invoked at the beginning. It must be.'
       )
 
-  def validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
+  def _validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
     """
     Method that validates if a given list of binaries are in the domain.
 
@@ -410,17 +414,7 @@ class Population():
 
     return True
 
-  def crossover_one_point(self) -> List[Individual]:
-    """
-    Method that creates n children from 2 * n parents combining their genotype
-    based in the crossover probability.
-
-    Raises:
-      Exception: when the initial data wasn't selected
-
-    Returns:
-      List[Individual]: n children
-    """
+  def _parents_selection_by_roulette(self) -> List[Individual]:
     current_population_score = reduce(
       lambda a, b: a + b.get_score(),
       self._current_population,
@@ -437,13 +431,27 @@ class Population():
     parents_length = len(parents)
 
     # If parents length is odd, a random parent will be removed
-    if len(parents) % 2 != 0:
+    if parents_length % 2 != 0:
       index = randint(0, parents_length)
       parents = parents[:index] + parents[index + 1:]
       parents_length -= 1
 
+    return parents
+
+  def _crossover_one_point(self) -> List[Individual]:
+    """
+    Method that creates n children from 2 * n parents combining their genotype
+    based in the crossover probability.
+
+    Raises:
+      Exception: when the initial data wasn't selected
+
+    Returns:
+      List[Individual]: n children
+    """
+    parents = self._parents_selection_by_roulette()
     shuffle(parents)
-    parents_in_pairs = [parents[i:i + 2] for i in range(0, parents_length, 2)]
+    parents_in_pairs = subsets_of_pairs(parents)
     total_bits = parents[0].get_total_bits()
     bits = parents[0].get_bits()
     children: List[Individual] = []
@@ -451,13 +459,14 @@ class Population():
     for p_parent in parents_in_pairs:
       if random() < self._crossover_rate:
         p1, p2 = p_parent
-        point = randint(0, total_bits - 1)
         binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
         gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
         binary_children: List[str] = []
         gray_children: List[str] = []
+        attempts = 0
 
         while True:
+          point = randint(0, total_bits - 1)
           binary_children = [
             binary_p1[:point] + binary_p2[point:],
             binary_p2[:point] + binary_p1[point:]
@@ -472,20 +481,27 @@ class Population():
             sub_strings_by_array(gray_children[0], bits),
             sub_strings_by_array(gray_children[1], bits)
           ]
-          are_binaries_valid = self.validate_binaries_in_range(
-              binaries_to_validate
-            )
+          are_binaries_valid = self._validate_binaries_in_range(
+            binaries_to_validate
+          )
 
-          if are_binaries_valid:
+          if are_binaries_valid or attempts >= total_bits:
             break
 
-        binary_child = choice(binary_children)
-        gray_child = choice(gray_children)
-        children.append(Individual(binary_child, gray_child, 0, bits))
+          attempts += 1
+
+        # binary_child = choice(binary_children)
+        # gray_child = gray_children[binary_children.index(binary_child)]
+        children.append(
+          Individual(binary_children[0], gray_children[0], 0, bits)
+        )
+        children.append(
+          Individual(binary_children[1], gray_children[1], 0, bits)
+        )
 
     return children
 
-  def mutation(self, children: List[Individual]) -> None:
+  def _mutation(self, children: List[Individual]) -> List[Individual]:
     """
     Method that changes 1 bit from a children based on the mutation probability.
 
@@ -507,16 +523,18 @@ class Population():
 
         while True:
           binary = mutate_binary_or_gray(child.get_binary())
-          gray = binary_to_gray(binary)
           bits = child.get_bits()
+          gray = format_to_n_bits(
+            binary_to_gray(binary),
+            reduce(lambda a, b: a + b, bits)
+          )
           binaries_to_validate = [
             sub_strings_by_array(binary, bits),
             sub_strings_by_array(gray, bits)
           ]
-
-          are_binaries_valid = self.validate_binaries_in_range(
-              binaries_to_validate
-            )
+          are_binaries_valid = self._validate_binaries_in_range(
+            binaries_to_validate
+          )
 
           if are_binaries_valid:
             mutated_child = Individual(binary, gray, 0, bits)
@@ -533,7 +551,9 @@ class Population():
       print(f'\nPopulation children after mutation: {mutated_children}\n')
       print()
 
-  def fitness(self, population_sample: List[Individual]) -> float:
+    return mutated_children
+
+  def _fitness(self, population_sample: List[Individual], minimize = True) -> None:
     """
     Method that calculates the fitness genotype of a given function for the
     current population.
@@ -547,7 +567,7 @@ class Population():
     """
     variables_array = self._variables.split()
     bits = population_sample[0].get_bits()
-    score_from_sample: float = 0.0
+    function_evaluations = []
 
     for i, individual in enumerate(population_sample):
       chromosome = individual.get_binary()
@@ -567,18 +587,47 @@ class Population():
         print(f'  gens: {gens}')
         print(f'  fens: {fens}')
 
-      fitness: exp = self._function.copy()
+      function: exp = sympify(str(self._function))
 
       for i, v in enumerate(variables_array):
-        fitness = fitness.subs(v, fens[i])
+        function = function.subs(v, fens[i])
 
-      score = format(fitness, f'.{self._n_decimal_digits}f')
-      score_from_sample += float(score)
+      function_evaluations.append(function)
 
       if self._print:
-        print(f'  fitness: {score}\n')
+        print(f'  fitness: {function}\n')
 
-    return score_from_sample
+    if minimize:
+      maxi = max(function_evaluations)
 
-  # def canonical_algorithm(self):
-  #   pass
+      for i, e in enumerate(function_evaluations):
+        population_sample[i].set_score(1e-3 + maxi - e)
+      pass
+    else:
+      mini = min(function_evaluations)
+
+      for i, e in enumerate(function_evaluations):
+        population_sample[i].set_score(1e-3 + e - mini)
+
+  def canonical_algorithm(self, SAMPLE_SIZE: int, GEN_NUMBER = 200):
+    self._select_initial_population(SAMPLE_SIZE)
+    self._fitness(self._current_population)
+    self._current_population.sort(reverse = True, key = lambda x: x.get_score())
+    self._best_individual = self._current_population[0]
+
+    for i in range(GEN_NUMBER):
+      print(f'{i + 1}º iteration, best individual: {self._best_individual}')
+      print(f'{i + 1}º iteration, population size: {len(self._current_population)}')
+
+      children = self._crossover_one_point()
+      mutated_children = self._mutation(children)
+      self._fitness(mutated_children)
+      self._update_current_population(mutated_children)
+      self._current_population.sort(
+        reverse = True,
+        key = lambda x: x.get_score()
+      )
+      self._best_individual = self._current_population[0]
+
+    print(f'{GEN_NUMBER + 1}º iteration, best individual: {self._best_individual}')
+    print(f'{GEN_NUMBER + 1}º iteration, population size: {len(self._current_population)}')

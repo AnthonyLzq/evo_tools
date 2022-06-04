@@ -8,5 +8,7 @@ from evo_tools.bin_gray import range_of_numbers_binary_and_gray
 from evo_tools.bin_gray import NumberBinaryAndGray
 from evo_tools.custom import custom_range
 from evo_tools.helpers import sub_strings_by_array
+from evo_tools.helpers import subsets
+from evo_tools.helpers import subsets_of_pairs
 from evo_tools.population import SubPopulation
 from evo_tools.population import Population
