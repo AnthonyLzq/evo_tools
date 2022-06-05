@@ -414,19 +414,21 @@ class Population():
 
     return True
 
-  def _parents_selection_by_roulette(self) -> List[Individual]:
+  def _parents_selection_by_roulette(self, seed: float) -> List[Individual]:
+    total_population = len(self._current_population)
     current_population_score = reduce(
       lambda a, b: a + b.get_score(),
       self._current_population,
       0
-    ) + 100 * len(self._current_population)
+    ) + 100 * total_population
     parents: List[Individual] = []
 
-    for individual in self._current_population:
-      p_i = (individual.get_score() + 100) / current_population_score
+    while len(parents) <= total_population * seed:
+      for individual in self._current_population:
+        p_i = (individual.get_score() + 100) / current_population_score
 
-      if random() < p_i:
-        parents.append(individual)
+        if random() < p_i:
+          parents.append(individual)
 
     parents_length = len(parents)
 
@@ -438,7 +440,7 @@ class Population():
 
     return parents
 
-  def _crossover_one_point(self) -> List[Individual]:
+  def _crossover_one_point(self, seed: float) -> List[Individual]:
     """
     Method that creates n children from 2 * n parents combining their genotype
     based in the crossover probability.
@@ -449,7 +451,7 @@ class Population():
     Returns:
       List[Individual]: n children
     """
-    parents = self._parents_selection_by_roulette()
+    parents = self._parents_selection_by_roulette(seed)
 
     if len(parents) == 0:
       return []
@@ -555,11 +557,10 @@ class Population():
             binaries_to_validate
           )
 
-          if are_binaries_valid or attempts <= 5:
+          if are_binaries_valid:
             mutated_child = Individual(binary, gray, 0, bits)
-            mutated_children_length = len(mutated_children)
-            mutated_children = mutated_children[:mutated_children_length - 1] \
-              + [mutated_child]
+            mutated_children.pop()
+            mutated_children.append(mutated_child)
 
             if (self._print):
               print(f'  Mutation for child completed: {mutated_child}\n')
@@ -647,25 +648,28 @@ class Population():
       maxi = max(final_function_evaluations)
 
       for i, e in enumerate(final_function_evaluations):
-        population_sample[i].set_score(1e-3 + maxi - e)
+        population_sample[i].set_score(1e-3 + maxi - abs(e))
     else:
       mini = min(final_function_evaluations)
 
       for i, e in enumerate(final_function_evaluations):
-        population_sample[i].set_score(1e-3 + e - mini)
+        population_sample[i].set_score(1e-3 + abs(e) - abs(mini))
 
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
     GEN_NUMBER = 200,
-    MINIMIZE = True
+    MINIMIZE = True,
+    SEED = 0.5
   ):
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
+    print('self._current_population', self._current_population)
     self._current_population.sort(
       reverse = MINIMIZE,
       key = lambda x: x.get_score()
     )
+    print('self._current_population', self._current_population)
     self._best_individual = self._current_population[0]
     current_iteration = 1
 
@@ -675,7 +679,7 @@ class Population():
 
     for i in range(GEN_NUMBER):
       current_iteration += 1
-      children = self._crossover_one_point()
+      children = self._crossover_one_point(SEED)
 
       if len(children) == 0:
         print('children issue')
@@ -684,10 +688,7 @@ class Population():
       if len(children) > 0:
         mutated_children = self._mutation(children)
         self._fitness(mutated_children, MINIMIZE)
-        mutated_children.sort(
-          reverse = MINIMIZE,
-          key = lambda x: x.get_score()
-        )
+        mutated_children.sort(reverse = MINIMIZE, key = lambda x: x.get_score())
         self._update_current_population(
           self._current_population[
             :len(self._current_population) - len(mutated_children)
@@ -696,8 +697,7 @@ class Population():
 
       self._best_individual = self._current_population[0]
 
-      if self._best_individual.get_score() < 1e-3:
-        print('score')
+      if round(self._best_individual.get_score(), 3) <= 1e-3:
         break
 
       print(
@@ -713,7 +713,7 @@ class Population():
       self._best_individual.get_bits()
     )
     print('binaries', binaries, end = '\n\n')
-    rng: Tuple[float | int, float | int] | None = None
+    ranges: List[Tuple[float | int, float | int]] = []
 
     for i, binary in enumerate(binaries):
       try:
@@ -724,20 +724,30 @@ class Population():
         if float(fen['number']) < x0 or float(fen['number']) > xf:
           pass
         else:
-          rng = _range
+          ranges.append(_range)
       except:
         pass
 
-    if rng == None:
+    if len(ranges) == 0:
       raise Exception('Something went wrong')
 
     function: exp = sympify(str(self._function))
     variables_array = self._variables.split()
     floats = []
 
-    for binary in binaries:
-      f = binary_to_float(binary, rng, self._precision)
-      floats.append(f['number'])
+    for rng in ranges:
+      for binary in binaries:
+        try:
+          f = binary_to_float(binary, rng, self._precision)
+          floats.append(f['number'])
+        except:
+          floats.append('fail')
+          pass
+
+      if len(floats) > 0:
+        break
+
+    print(floats)
 
     for i, v in enumerate(variables_array):
       function = function.subs(v, floats[i])
