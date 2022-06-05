@@ -34,7 +34,7 @@ class Individual():
     return self._gray
 
   def get_score(self) -> float:
-    return self._score
+    return float(self._score)
 
   def get_bits(self) -> List[int]:
     return self._bits.copy()
@@ -400,8 +400,8 @@ class Population():
     Returns:
       bool: whether or not binaries are valid
     """
-    for b in binaries:
-      for i, gen in enumerate(b):
+    for binary in binaries:
+      for i, gen in enumerate(binary):
         try:
           _range = self._sub_populations[i].rng
           fen = binary_to_float(gen, _range, self._precision)
@@ -423,7 +423,7 @@ class Population():
     parents: List[Individual] = []
 
     for individual in self._current_population:
-      p_i = individual.get_score() + 100 / current_population_score
+      p_i = (individual.get_score() + 100) / current_population_score
 
       if random() < p_i:
         parents.append(individual)
@@ -450,6 +450,10 @@ class Population():
       List[Individual]: n children
     """
     parents = self._parents_selection_by_roulette()
+
+    if len(parents) == 0:
+      return []
+
     shuffle(parents)
     parents_in_pairs = subsets_of_pairs(parents)
     total_bits = parents[0].get_total_bits()
@@ -458,15 +462,18 @@ class Population():
 
     for p_parent in parents_in_pairs:
       if random() < self._crossover_rate:
+        points = [i for i in range(0, total_bits)]
         p1, p2 = p_parent
         binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
         gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
         binary_children: List[str] = []
         gray_children: List[str] = []
         attempts = 0
+        are_first_binaries_valid = False
+        are_second_binaries_valid = False
 
         while True:
-          point = randint(0, total_bits - 1)
+          point = choice(points)
           binary_children = [
             binary_p1[:point] + binary_p2[point:],
             binary_p2[:point] + binary_p1[point:]
@@ -475,29 +482,40 @@ class Population():
             gray_p1[:point] + gray_p2[point:],
             gray_p2[:point] + gray_p1[point:]
           ]
-          binaries_to_validate = [
+          first_binaries_to_validate = [
             sub_strings_by_array(binary_children[0], bits),
-            sub_strings_by_array(binary_children[1], bits),
             sub_strings_by_array(gray_children[0], bits),
+          ]
+          second_binaries_to_validate = [
+            sub_strings_by_array(binary_children[1], bits),
             sub_strings_by_array(gray_children[1], bits)
           ]
-          are_binaries_valid = self._validate_binaries_in_range(
-            binaries_to_validate
+          are_first_binaries_valid = self._validate_binaries_in_range(
+            first_binaries_to_validate
+          )
+          are_second_binaries_valid = self._validate_binaries_in_range(
+            second_binaries_to_validate
           )
 
-          if are_binaries_valid or attempts >= total_bits:
+          if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
             break
+          else:
+            points = list(filter(lambda number: number != point, points))
+
+            if len(points) == 0:
+              break
 
           attempts += 1
 
-        # binary_child = choice(binary_children)
-        # gray_child = gray_children[binary_children.index(binary_child)]
-        children.append(
-          Individual(binary_children[0], gray_children[0], 0, bits)
-        )
-        children.append(
-          Individual(binary_children[1], gray_children[1], 0, bits)
-        )
+        if are_first_binaries_valid:
+          children.append(
+            Individual(binary_children[0], gray_children[0], 0, bits)
+          )
+
+        if are_second_binaries_valid:
+          children.append(
+            Individual(binary_children[1], gray_children[1], 0, bits)
+          )
 
     return children
 
@@ -516,6 +534,7 @@ class Population():
 
     for child in children:
       mutated_children.append(child)
+      attempts = 0
 
       if random() < self._mutation_rate:
         if (self._print):
@@ -536,7 +555,7 @@ class Population():
             binaries_to_validate
           )
 
-          if are_binaries_valid:
+          if are_binaries_valid or attempts <= 5:
             mutated_child = Individual(binary, gray, 0, bits)
             mutated_children_length = len(mutated_children)
             mutated_children = mutated_children[:mutated_children_length - 1] \
@@ -546,6 +565,10 @@ class Population():
               print(f'  Mutation for child completed: {mutated_child}\n')
 
             break
+          elif attempts > 5:
+            break
+
+          attempts += 1
 
     if self._print:
       print(f'\nPopulation children after mutation: {mutated_children}\n')
@@ -580,8 +603,12 @@ class Population():
 
       for i, gen in enumerate(gens):
         _range = self._sub_populations[i].rng
-        fen = float(binary_to_float(gen, _range, self._precision)['number'])
-        fens.append(fen)
+
+        try:
+          fen = float(binary_to_float(gen, _range, self._precision)['number'])
+          fens.append(fen)
+        except:
+          pass
 
       if (self._print):
         print(f'  gens: {gens}')
@@ -589,45 +616,130 @@ class Population():
 
       function: exp = sympify(str(self._function))
 
-      for i, v in enumerate(variables_array):
-        function = function.subs(v, fens[i])
+      if len(gens) == len(fens):
+        for i, v in enumerate(variables_array):
+          function = function.subs(v, fens[i])
 
-      function_evaluations.append(function)
+        function_evaluations.append(function)
 
-      if self._print:
-        print(f'  fitness: {function}\n')
+        if self._print:
+          print(f'  fitness: {function}\n')
+      else:
+        function_evaluations.append('Fail')
+
+        if self._print:
+          print(f'  fitness: Fail\n')
+
+    final_function_evaluations = []
+    final_population_sample = []
+
+    for i, fe in enumerate(function_evaluations):
+      if fe != 'Fail':
+        final_function_evaluations.append(fe)
+        final_population_sample.append(population_sample[i])
+
+    population_sample = final_population_sample
+
+    if len(final_function_evaluations) == 0:
+      return
 
     if minimize:
-      maxi = max(function_evaluations)
+      maxi = max(final_function_evaluations)
 
-      for i, e in enumerate(function_evaluations):
+      for i, e in enumerate(final_function_evaluations):
         population_sample[i].set_score(1e-3 + maxi - e)
-      pass
     else:
-      mini = min(function_evaluations)
+      mini = min(final_function_evaluations)
 
-      for i, e in enumerate(function_evaluations):
+      for i, e in enumerate(final_function_evaluations):
         population_sample[i].set_score(1e-3 + e - mini)
 
-  def canonical_algorithm(self, SAMPLE_SIZE: int, GEN_NUMBER = 200):
+  def canonical_algorithm(
+    self,
+    SAMPLE_SIZE: int,
+    GEN_NUMBER = 200,
+    MINIMIZE = True
+  ):
     self._select_initial_population(SAMPLE_SIZE)
-    self._fitness(self._current_population)
-    self._current_population.sort(reverse = True, key = lambda x: x.get_score())
+    self._fitness(self._current_population, MINIMIZE)
+    self._current_population.sort(
+      reverse = MINIMIZE,
+      key = lambda x: x.get_score()
+    )
     self._best_individual = self._current_population[0]
+    current_iteration = 1
+
+    print(
+      f'{current_iteration}º iteration, best individual: {self._best_individual}'
+    )
 
     for i in range(GEN_NUMBER):
-      print(f'{i + 1}º iteration, best individual: {self._best_individual}')
-      print(f'{i + 1}º iteration, population size: {len(self._current_population)}')
-
+      current_iteration += 1
       children = self._crossover_one_point()
-      mutated_children = self._mutation(children)
-      self._fitness(mutated_children)
-      self._update_current_population(mutated_children)
-      self._current_population.sort(
-        reverse = True,
-        key = lambda x: x.get_score()
-      )
+
+      if len(children) == 0:
+        print('children issue')
+        break
+
+      if len(children) > 0:
+        mutated_children = self._mutation(children)
+        self._fitness(mutated_children, MINIMIZE)
+        mutated_children.sort(
+          reverse = MINIMIZE,
+          key = lambda x: x.get_score()
+        )
+        self._update_current_population(
+          self._current_population[
+            :len(self._current_population) - len(mutated_children)
+          ] + mutated_children[:SAMPLE_SIZE]
+        )
+
       self._best_individual = self._current_population[0]
 
-    print(f'{GEN_NUMBER + 1}º iteration, best individual: {self._best_individual}')
-    print(f'{GEN_NUMBER + 1}º iteration, population size: {len(self._current_population)}')
+      if self._best_individual.get_score() < 1e-3:
+        print('score')
+        break
+
+      print(
+        f'{current_iteration}º iteration, best individual: {self._best_individual}'
+      )
+
+    print(
+      f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}'
+    )
+
+    binaries = sub_strings_by_array(
+      self._best_individual.get_binary(),
+      self._best_individual.get_bits()
+    )
+    print('binaries', binaries, end = '\n\n')
+    rng: Tuple[float | int, float | int] | None = None
+
+    for i, binary in enumerate(binaries):
+      try:
+        _range = self._sub_populations[i].rng
+        fen = binary_to_float(binary, _range, self._precision)
+        x0, xf = _range
+
+        if float(fen['number']) < x0 or float(fen['number']) > xf:
+          pass
+        else:
+          rng = _range
+      except:
+        pass
+
+    if rng == None:
+      raise Exception('Something went wrong')
+
+    function: exp = sympify(str(self._function))
+    variables_array = self._variables.split()
+    floats = []
+
+    for binary in binaries:
+      f = binary_to_float(binary, rng, self._precision)
+      floats.append(f['number'])
+
+    for i, v in enumerate(variables_array):
+      function = function.subs(v, floats[i])
+
+    print(function)

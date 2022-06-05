@@ -9,11 +9,12 @@ f = x + 2 * y + 3 * z + 4 * w + 5 * v - 50
 
 population = Population(
   ranges = [(0, 10), (0, 10), (0, 10), (0, 10), (0, 10)],
-  precision = 1,
+  precision = 0.001,
   crossover_rate = 1,
   mutation_rate = 0.1,
   variables = variables,
-  function = f
+  function = f,
+  _print = False
 )
 # initial_population = population.select_initial_population(8)
 # population.print()
@@ -24,4 +25,4 @@ population = Population(
 # new_data = population.get_current_population()
 # print(dumps(new_data, indent = 2), end = '\n\n')
 
-population.canonical_algorithm(8)
+population.canonical_algorithm(200)
