@@ -17,4 +17,4 @@ population = Population(
   _print = False
 )
 
-population.canonical_algorithm(10)
+population.canonical_algorithm(100)

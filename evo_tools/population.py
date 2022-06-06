@@ -1,18 +1,12 @@
-from random import choice, sample, random, randint, shuffle
+import numpy as np
+from random import choice, sample, random, randint
 from math import log
 from functools import reduce
 from sympy import exp, sympify
 from typing import List, Tuple, Union
-from sys import version_info
-from json import dumps
-
-if version_info >= (3, 8):
-  from typing import TypedDict
-else:
-  from typing_extensions import TypedDict
 
 from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
-from evo_tools.helpers import sub_strings_by_array, subsets_of_pairs
+from evo_tools.helpers import sub_strings_by_array
 
 class Individual():
   def __init__(
@@ -414,29 +408,45 @@ class Population():
 
     return True
 
-  def _parents_selection_by_roulette(self, seed: float) -> List[Individual]:
+  def _parents_selection_by_roulette(
+    self,
+    seed: float
+  ) -> List[List[Individual]]:
     total_population = len(self._current_population)
-    current_population_score = reduce(
-      lambda a, b: a + b.get_score(),
-      self._current_population,
-      0
-    ) + 100 * total_population
-    parents: List[Individual] = []
+    parents_candidates = np.array(self._current_population)
+    generation_score = np.array(
+      [individual.get_score() for individual in parents_candidates]
+    )
+    random_parents_indexes_chosen = np.random.choice(
+      total_population,
+      size = (round(seed), 2),
+      p = generation_score / sum(generation_score)
+    )
+    unique_random_parents_indexes_chosen, _ = np.unique(
+      [
+        str(
+          np.ndarray.tolist(index)
+        )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
+      ],
+      return_index = True
+    )
+    final_parents_indexes = list(
+      filter(
+        lambda a: a[0] != a[1],
+        map(
+          lambda e: [int(i) for i in e.split(',')],
+          unique_random_parents_indexes_chosen
+        )
+      )
+    )
+    parents: List[List[Individual]] = []
 
-    while len(parents) <= total_population * seed:
-      for individual in self._current_population:
-        p_i = (individual.get_score() + 100) / current_population_score
-
-        if random() < p_i:
-          parents.append(individual)
-
-    parents_length = len(parents)
-
-    # If parents length is odd, a random parent will be removed
-    if parents_length % 2 != 0:
-      index = randint(0, parents_length)
-      parents = parents[:index] + parents[index + 1:]
-      parents_length -= 1
+    for indexes in final_parents_indexes:
+      i_1, i_2 = indexes
+      parents.append([
+        self._current_population[i_1],
+        self._current_population[i_2]
+      ])
 
     return parents
 
@@ -456,13 +466,11 @@ class Population():
     if len(parents) == 0:
       return []
 
-    shuffle(parents)
-    parents_in_pairs = subsets_of_pairs(parents)
-    total_bits = parents[0].get_total_bits()
-    bits = parents[0].get_bits()
+    total_bits = parents[0][0].get_total_bits()
+    bits = parents[0][0].get_bits()
     children: List[Individual] = []
 
-    for p_parent in parents_in_pairs:
+    for p_parent in parents:
       if random() < self._crossover_rate:
         points = [i for i in range(0, total_bits)]
         p1, p2 = p_parent
@@ -645,31 +653,31 @@ class Population():
       return
 
     if minimize:
-      maxi = max(final_function_evaluations)
+      maxi = max([abs(e) for e in final_function_evaluations])
 
       for i, e in enumerate(final_function_evaluations):
-        population_sample[i].set_score(1e-3 + maxi - abs(e))
+        score = 1e-3 + maxi - abs(e)
+        population_sample[i].set_score(score)
     else:
-      mini = min(final_function_evaluations)
+      mini = min([abs(e) for e in final_function_evaluations])
 
       for i, e in enumerate(final_function_evaluations):
-        population_sample[i].set_score(1e-3 + abs(e) - abs(mini))
+        score = 1e-3 + abs(e) - mini
+        population_sample[i].set_score(score)
 
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
     GEN_NUMBER = 200,
     MINIMIZE = True,
-    SEED = 0.5
+    SEED = 1.8
   ):
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
-    print('self._current_population', self._current_population)
     self._current_population.sort(
       reverse = MINIMIZE,
       key = lambda x: x.get_score()
     )
-    print('self._current_population', self._current_population)
     self._best_individual = self._current_population[0]
     current_iteration = 1
 
@@ -679,7 +687,7 @@ class Population():
 
     for i in range(GEN_NUMBER):
       current_iteration += 1
-      children = self._crossover_one_point(SEED)
+      children = self._crossover_one_point(SAMPLE_SIZE * SEED)
 
       if len(children) == 0:
         print('children issue')
