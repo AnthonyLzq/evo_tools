@@ -10,6 +10,9 @@ from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_g
 from evo_tools.helpers import sub_strings_by_array
 
 class Individual():
+  """
+  A member of a population.
+  """
   def __init__(
     self,
     binary: str,
@@ -66,20 +69,6 @@ class SubPopulation():
     The range specified for this SubPopulation, for this case (1, 2)
 
   numbers: List[NumberBinaryAndGray]
-    Where NumberBinaryAndGray is a dictionary with 3 keys:
-
-      number: str
-        Float number with fixed precision based in the precision input. In this
-        case 0.1
-
-      binary: str
-        The binary representation of one number from to the scaled interval.
-        This means that for the interval (1, 2) with precision 0.1, 1 will be
-        consider as 0 in binary, 1.1 as 1 in binary and so on.
-
-      gray: str
-        Analogous to "binaries", but it is the representation of one number from
-        the scaled interval in gray code.
 
   bits: int
     Number of bits used for represent the float value.
@@ -125,8 +114,25 @@ class Population():
   _mutation_rate: float
     Probability to mutate children.
 
+  _variables: str
+    The variables to be used in the objective function, separated by spaces.
+
+  _function: exp
+    The function to be minimized of maximized.
+
   _print: bool = False
     Whether or not should print the output in the methods.
+
+  _current_population: List[Individual]
+    Population selected that will change in every iteration of the canonical
+    algorithm.
+
+  _initial_population: List[Individual]
+    First population selected by the canonical algorithm.
+
+  _best_individual: Individual
+    Individual with the highest score in the current population. That means it
+    is the closest to the actual solution.
   """
 
   def __init__(
@@ -355,7 +361,19 @@ class Population():
   def _parents_selection_by_roulette(
     self,
     seed: float
-  ) -> List[List[Individual]]:
+  ) -> List[Tuple[Individual, Individual]]:
+    """
+    Method that selects parents based on the probability: own_score/generation_score.
+    Both parents have to be different from each other at least in one bit.
+
+    Args:
+      seed (float): a float value that will be rounded to int. This value will
+      set the maximum amount of parents to be generated.
+
+    Returns:
+      List[Tuple[Individual, Individual]]: list that contains a pair of
+      different parents.
+    """
     total_population = len(self._current_population)
     parents_candidates = np.array(self._current_population)
     generation_score = np.array(
@@ -383,14 +401,14 @@ class Population():
         )
       )
     )
-    parents: List[List[Individual]] = []
+    parents: List[Tuple[Individual, Individual]] = []
 
     for indexes in final_parents_indexes:
       i_1, i_2 = indexes
-      parents.append([
+      parents.append((
         self._current_population[i_1],
         self._current_population[i_2]
-      ])
+      ))
 
     return parents
 
@@ -537,9 +555,8 @@ class Population():
     Args:
       population_sample (List[Individual]): a subset from the current population
       to calculate its fitness.
-
-    Returns:
-      float: total fitness from sample.
+      minimize (bool, optional): a boolean that indicates if the problem
+      is it a minimization or maximization problem. Defaults to True.
     """
     variables_array = self._variables.split()
     bits = population_sample[0].get_bits()
@@ -614,11 +631,42 @@ class Population():
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
-    GEN_NUMBER = 200,
+    ITERATIONS = 200,
     MINIMIZE = True,
     SEED = 1.8,
     PRINT = False
   ) -> Tuple[List[float], dict[str, str], exp]:
+    """
+    Canonical algorithm that follows the following steps:
+    1. select initial population
+    2. fitness the initial population
+    3. select the best individual
+    4. a loop:
+      4.1. crossover
+      4.2. selection
+      4.3. validate error, if error <= 1e-3, break, else continue
+    5. calculates the solution and return it
+
+    Args:
+      SAMPLE_SIZE (int): sample size of the population to work with.
+      ITERATIONS (int, optional): number of iterations for the algorithm.
+      Defaults to 200.
+      MINIMIZE (bool, optional): a boolean that indicates if the problem
+      is it a minimization or maximization problem. Defaults to True.
+      SEED (float, optional): fraction of the sample size to fix the maximum
+      number of parents. Defaults to 1.8.
+      PRINT (bool, optional): a boolean that indicates if the output should be
+      printed. Defaults to False.
+
+    Raises:
+      Exception: when a generation has a individual that is outside from all the
+      given intervals.
+
+    Returns:
+      Tuple[List[float], dict[str, str], exp]: A tuple that contains the list of
+      historical scores from each generation, a dict with the solution for each
+      given variable and the result calculated for the obtained solution.
+    """
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
     self._current_population.sort(
@@ -634,7 +682,7 @@ class Population():
         f'{current_iteration}º iteration, best individual: {self._best_individual}'
     )
 
-    for i in range(GEN_NUMBER):
+    for i in range(ITERATIONS):
       current_iteration += 1
       children = self._crossover_one_point(SAMPLE_SIZE * SEED)
       self._select(children, MINIMIZE, SAMPLE_SIZE)
