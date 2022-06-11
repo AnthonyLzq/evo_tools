@@ -1,22 +1,23 @@
 from random import randint
 from math import log, log2
 from typing import List, Tuple, Union
-from sys import version_info
-
-if version_info >= (3, 8):
-  from typing import TypedDict
-else:
-  from typing_extensions import TypedDict
 
 from evo_tools.custom import custom_range
 
-class NumberBinaryAndGray(TypedDict):
-  """
-  A custom dict model which represents a float number in binary and gray.
-  """
-  number: str
-  binary: str
-  gray: str
+class NumberBinaryAndGray():
+  def __init__(self, number: str, binary: str, gray: str) -> None:
+    self._number = number
+    self._binary = binary
+    self._gray = gray
+
+  def get_number(self) -> str:
+    return self._number
+
+  def get_binary(self) -> str:
+    return self._binary
+
+  def get_gray(self) -> str:
+    return self._gray
 
 def binary_to_int(b: str) -> int:
   """
@@ -144,7 +145,7 @@ def range_of_numbers_binary_and_gray(
 
   n_decimal_digits = int(round(log(p10, 10)))
   bits = int(round((log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)))
-  numbers = []
+  numbers: List[NumberBinaryAndGray] = []
 
   for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
     number = int(p10 * i)
@@ -157,14 +158,16 @@ def range_of_numbers_binary_and_gray(
     index = round(i, n_decimal_digits)
 
     if index <= xf:
-      numbers.append({
-        'number': format(
-          index,
-          f'.{n_decimal_digits}f'
-        ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
-        'binary': format_to_n_bits(int_to_binary(number), bits),
-        'gray': format_to_n_bits(int_to_gray(number), bits)
-      })
+      numbers.append(
+        NumberBinaryAndGray(
+          format(
+            index,
+            f'.{n_decimal_digits}f'
+          ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
+          format_to_n_bits(int_to_binary(number), bits),
+          format_to_n_bits(int_to_gray(number), bits)
+        )
+      )
 
   return numbers, bits
 
@@ -220,7 +223,7 @@ def float_to_binary_and_gray(
 
   numbers, bits = range_of_numbers_binary_and_gray(rng, precision)
   aux: List[NumberBinaryAndGray] = list(
-    filter(lambda number: number['number'] == str(n), numbers)
+    filter(lambda nbg: nbg.get_number() == str(n), numbers)
   )
 
   if len(aux) == 0:
@@ -256,7 +259,7 @@ def binary_to_float(
     (float, binary and gray).
   """
   numbers, _ = range_of_numbers_binary_and_gray(rng, precision)
-  aux = list(filter(lambda e: e['binary'] == b, numbers))
+  aux = list(filter(lambda nbg: nbg.get_binary() == b, numbers))
 
   if len(aux) == 0:
     raise Exception(

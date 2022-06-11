@@ -1,5 +1,6 @@
+from xmlrpc.client import Boolean
 import numpy as np
-from random import choice, sample, random, randint
+from random import choice, sample, random
 from math import log
 from functools import reduce
 from sympy import exp, sympify
@@ -275,8 +276,8 @@ class Population():
         for j, _ in enumerate(self._sub_populations):
           current_sample, current_bits = samples[j]
           bits.append(current_bits)
-          binary += current_sample[i]['binary']
-          gray += current_sample[i]['gray']
+          binary += current_sample[i].get_binary()
+          gray += current_sample[i].get_gray()
 
         binaries.append(binary)
         grays.append(gray)
@@ -301,52 +302,6 @@ class Population():
     """
     return self._current_population.copy()
 
-  def _get_sample_from_population(self, sample_size: int) -> List[Individual]:
-    """
-    Method that selects a new sample randomly base on the following probability:
-    fitness(i) / fitness_population
-
-    Args:
-      sample_size: int
-
-    Raises:
-      Exception: if the fitness was not calculated
-
-    Returns:
-      List[Individual]: new current population
-    """
-    current_population_score = reduce(
-      lambda acc, individual: acc + individual.get_score(),
-      self._current_population,
-      0
-    )
-
-    if current_population_score == 0:
-      raise Exception('Fitness has to be calculated first.')
-
-    new_population: List[Individual] = []
-
-    for individual in self._current_population:
-      if random() < individual.get_score() / current_population_score:
-        new_population.append(individual)
-
-    new_population_length = len(new_population)
-
-    if new_population_length < sample_size:
-      elements_to_add = sample_size - new_population_length
-
-      for _ in range(elements_to_add):
-        index = randint(0, len(self._current_population))
-        new_population.append(self._current_population[index])
-    elif new_population_length > sample_size:
-      elements_to_eliminate = new_population_length - sample_size
-
-      for _ in range(elements_to_eliminate):
-        index = randint(0, len(new_population))
-        new_population = new_population[:index] + new_population[index + 1:]
-
-    return new_population
-
   def _update_current_population(self, new_population: List[Individual]) -> None:
     """
     Method that updates the current sample, after crossover or mutation.
@@ -356,32 +311,21 @@ class Population():
     """
     self._current_population = new_population
 
-  def _select(self, sample_size: int) -> None:
-    """
-    Method that creates a new sample and update the current sample with the new one.
-
-    Args:
-      sample_size: int
-
-    Raises:
-      Exception: when the sample size is too big or the initial data was not selected.
-    """
-    if (sample_size > self._max_sample_size):
-      raise Exception(
-        f'Sample size too big, maximum is: {self._max_sample_size}'
-      )
-
-    try:
-      sample_population = self._get_sample_from_population(sample_size)
-      self._update_current_population(sample_population)
-
-      if self._print:
-        print('\nSelection: \n')
-        print(self._current_population)
-    except:
-      raise Exception(
-        'Select initial data was not invoked at the beginning. It must be.'
-      )
+  def _select(
+    self,
+    individuals: List[Individual],
+    minimize: bool,
+    sample_size: int
+  ) -> None:
+    mutated_individuals = self._mutation(individuals)
+    self._fitness(mutated_individuals, minimize)
+    mutated_individuals.sort(reverse = minimize, key = lambda x: x.get_score())
+    self._update_current_population(
+      self._current_population[
+        :len(self._current_population) - len(mutated_individuals)
+      ] + mutated_individuals[:sample_size]
+    )
+    self._best_individual = self._current_population[0]
 
   def _validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
     """
@@ -401,7 +345,7 @@ class Population():
           fen = binary_to_float(gen, _range, self._precision)
           x0, xf = _range
 
-          if float(fen['number']) < x0 or float(fen['number']) > xf:
+          if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
             return False
         except:
           return False
@@ -614,7 +558,9 @@ class Population():
         _range = self._sub_populations[i].rng
 
         try:
-          fen = float(binary_to_float(gen, _range, self._precision)['number'])
+          fen = float(
+            binary_to_float(gen, _range, self._precision).get_number()
+          )
           fens.append(fen)
         except:
           pass
@@ -670,8 +616,9 @@ class Population():
     SAMPLE_SIZE: int,
     GEN_NUMBER = 200,
     MINIMIZE = True,
-    SEED = 1.8
-  ):
+    SEED = 1.8,
+    PRINT = False
+  ) -> Tuple[List[float], dict[str, str], exp]:
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
     self._current_population.sort(
@@ -680,47 +627,36 @@ class Population():
     )
     self._best_individual = self._current_population[0]
     current_iteration = 1
+    scores: List[float] = []
 
-    print(
-      f'{current_iteration}º iteration, best individual: {self._best_individual}'
+    if PRINT:
+      print(
+        f'{current_iteration}º iteration, best individual: {self._best_individual}'
     )
 
     for i in range(GEN_NUMBER):
       current_iteration += 1
       children = self._crossover_one_point(SAMPLE_SIZE * SEED)
-
-      if len(children) == 0:
-        print('children issue')
-        break
-
-      if len(children) > 0:
-        mutated_children = self._mutation(children)
-        self._fitness(mutated_children, MINIMIZE)
-        mutated_children.sort(reverse = MINIMIZE, key = lambda x: x.get_score())
-        self._update_current_population(
-          self._current_population[
-            :len(self._current_population) - len(mutated_children)
-          ] + mutated_children[:SAMPLE_SIZE]
-        )
-
-      self._best_individual = self._current_population[0]
+      self._select(children, MINIMIZE, SAMPLE_SIZE)
+      scores.append(self._best_individual.get_score())
 
       if round(self._best_individual.get_score(), 3) <= 1e-3:
         break
 
-      print(
-        f'{current_iteration}º iteration, best individual: {self._best_individual}'
-      )
+      if PRINT:
+        print(
+          f'{current_iteration}º iteration, best individual: {self._best_individual}'
+        )
 
-    print(
-      f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}'
-    )
+    if PRINT:
+      print(
+        f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}'
+      )
 
     binaries = sub_strings_by_array(
       self._best_individual.get_binary(),
       self._best_individual.get_bits()
     )
-    print('binaries', binaries, end = '\n\n')
     ranges: List[Tuple[float | int, float | int]] = []
 
     for i, binary in enumerate(binaries):
@@ -729,7 +665,7 @@ class Population():
         fen = binary_to_float(binary, _range, self._precision)
         x0, xf = _range
 
-        if float(fen['number']) < x0 or float(fen['number']) > xf:
+        if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
           pass
         else:
           ranges.append(_range)
@@ -739,15 +675,14 @@ class Population():
     if len(ranges) == 0:
       raise Exception('Something went wrong')
 
-    function: exp = sympify(str(self._function))
     variables_array = self._variables.split()
-    floats = []
+    floats: List[str] = []
 
     for rng in ranges:
       for binary in binaries:
         try:
-          f = binary_to_float(binary, rng, self._precision)
-          floats.append(f['number'])
+          fen = binary_to_float(binary, rng, self._precision)
+          floats.append(fen.get_number())
         except:
           floats.append('fail')
           pass
@@ -755,9 +690,16 @@ class Population():
       if len(floats) > 0:
         break
 
-    print(floats)
+    function: exp = sympify(str(self._function))
+    solution: dict[str, str] = {}
 
     for i, v in enumerate(variables_array):
       function = function.subs(v, floats[i])
+      solution[v] = floats[i]
 
-    print(function)
+    if PRINT:
+      print('Solution:')
+      print(f'  Variables: {solution}')
+      print(f'  Evaluation: {function}')
+
+    return scores, solution, function

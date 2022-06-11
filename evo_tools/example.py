@@ -1,5 +1,5 @@
-from json import dumps, loads
 from sympy import symbols
+import time
 
 from evo_tools.population import Population
 
@@ -17,4 +17,12 @@ population = Population(
   _print = False
 )
 
-population.canonical_algorithm(100)
+start = time.time()
+scores, solution, result = population.canonical_algorithm(100, PRINT = True)
+end = time.time()
+
+print()
+print('scores       :', scores)
+print('solution     :', solution)
+print('result       :', result)
+print(f'time elapsed: {end - start}s')
