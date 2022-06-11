@@ -1,10 +1,9 @@
-from xmlrpc.client import Boolean
 import numpy as np
 from random import choice, sample, random
 from math import log
 from functools import reduce
 from sympy import exp, sympify
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from evo_tools.helpers import sub_strings_by_array
@@ -635,7 +634,7 @@ class Population():
     MINIMIZE = True,
     SEED = 1.8,
     PRINT = False
-  ) -> Tuple[List[float], dict[str, str], exp]:
+  ) -> Tuple[List[float], Dict[str, str], exp]:
     """
     Canonical algorithm that follows the following steps:
     1. select initial population
@@ -663,8 +662,8 @@ class Population():
       given intervals.
 
     Returns:
-      Tuple[List[float], dict[str, str], exp]: A tuple that contains the list of
-      historical scores from each generation, a dict with the solution for each
+      Tuple[List[float], Dict[str, str], exp]: A tuple that contains the list of
+      historical scores from each generation, a Dict with the solution for each
       given variable and the result calculated for the obtained solution.
     """
     self._select_initial_population(SAMPLE_SIZE)
@@ -739,7 +738,7 @@ class Population():
         break
 
     function: exp = sympify(str(self._function))
-    solution: dict[str, str] = {}
+    solution: Dict[str, str] = {}
 
     for i, v in enumerate(variables_array):
       function = function.subs(v, floats[i])

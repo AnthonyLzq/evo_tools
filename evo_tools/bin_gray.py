@@ -104,14 +104,8 @@ def range_of_numbers_binary_and_gray(
   """
   Function to create a list of :class:`NumberBinaryAndGray`. For example, given
   a range [-1, 1] and a precision of 0.1, this functions will create an array
-  of dicts who will look like: [
-    {
-      'number': '-1.0',
-      'binary': '0.0',
-      'gray': '0.0'
-    },
-    ...
-  ]
+  of NumberBinaryAndGray, which is a object that has a number (float representation),
+  binary and gray attributes in strings.
 
   Args:
     rng (Tuple[Union[float, int], Union[float, int]]):
@@ -197,13 +191,8 @@ def float_to_binary_and_gray(
 
   Returns:
     Tuple[NumberBinaryAndGray, int, List[NumberBinaryAndGray]]:
-      In the first position a dict that contains the three available representation
-      of the float number, for example:
-      {
-        'number': '1.0',
-        'binary': '00',
-        'gray': '00'
-      }
+      In the first position a object that has a number (float representation),
+      binary and gray attributes in strings.
 
       In the second position the number of bits that are used to represent
       the given float or integer numbers in binary.
