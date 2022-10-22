@@ -589,7 +589,7 @@ class Population():
 
       if len(gens) == len(fens):
         for i, v in enumerate(variables_array):
-          function = function.subs(v, fens[i])
+          function = function.subs(v, fens[i])  # type: ignore
 
         function_evaluations.append(function)
 
@@ -741,7 +741,7 @@ class Population():
     solution: Dict[str, str] = {}
 
     for i, v in enumerate(variables_array):
-      function = function.subs(v, floats[i])
+      function = function.subs(v, floats[i])  # type: ignore
       solution[v] = floats[i]
 
     if PRINT:

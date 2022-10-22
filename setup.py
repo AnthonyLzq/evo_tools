@@ -17,14 +17,21 @@ setup(
   install_requires=['sympy', 'numpy'],
   keywords=['python', 'evolutionary programming'],
   project_urls={
-    "Source Code": "https://gitlab.com/AnthonyLzq/evo_tools"
+    'Source Code': 'https://gitlab.com/AnthonyLzq/evo_tools'
   },
+  entry_points={
+    'console_scripts': [
+      'test_algorithm=test.algorithm:main'
+    ]
+  },
+  setup_requires=['pytest-runner'],
+  tests_require=['pytest', 'pytest-mock'],
   classifiers=[
     'Development Status :: 1 - Planning',
     'Intended Audience :: Developers',
     'Programming Language :: Python :: 3',
     'Operating System :: Unix',
     'Operating System :: MacOS :: MacOS X',
-    'Operating System :: Microsoft :: Windows',
+    'Operating System :: Microsoft :: Windows'
   ]
 )
