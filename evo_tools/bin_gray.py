@@ -24,8 +24,7 @@ def binary_to_int(b: str) -> int:
   Function to change binary to integer.
 
   Args:
-    b (str):
-      Binary expressed in str.
+    b (str): Binary expressed in str.
 
   Returns:
     int: binary expressed in integer.
@@ -37,8 +36,7 @@ def binary_to_gray(b: str) -> str:
   Function to change a binary to gray.
 
   Args:
-    b (str):
-      Binary expressed in str.
+    b (str): Binary expressed in str.
 
   Returns:
     str: binary expressed in gray
@@ -77,25 +75,24 @@ def int_to_gray(n: int) -> str:
 
   return g
 
-def format_to_n_bits(b_number: str, bits: int) -> str:
+def format_to_n_bits(binary: str, bits: int) -> str:
   """
   Function to change the format of a binary to a fixed format. It adds 0s at the
   beginning if it is required. For example, if ('101', 4) is the input, then
   '0101' will be the output.
 
   Args:
-    b_number (str):
-      Binary number to be formatted expressed in string
-    bits (int):
-      Minimal length required for the binary
+    binary (str): Binary number to be formatted expressed in string
+
+    bits (int): Minimal length required for the binary
 
   Returns:
-      str: _description_
+    str: Binary number formatted with bits - 1 zeros on the left
   """
-  l = len(b_number)
-  b_number = str(0) * (bits - l) + b_number
+  l = len(binary)
+  formatted_binary = str(0) * (bits - l) + binary
 
-  return b_number
+  return formatted_binary
 
 def range_of_numbers_binary_and_gray(
   rng: Tuple[Union[float, int], Union[float, int]],
