@@ -21,7 +21,8 @@ setup(
   },
   entry_points={
     'console_scripts': [
-      'test_algorithm=test.algorithm:main'
+      'test_algorithm=test.setup:algorithm',
+      'test_bin_gray=test.setup:bin_gray'
     ]
   },
   setup_requires=['pytest-runner'],
