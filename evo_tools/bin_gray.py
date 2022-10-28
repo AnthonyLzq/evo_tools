@@ -19,6 +19,9 @@ class NumberBinaryAndGray():
   def get_gray(self) -> str:
     return self._gray
 
+  def __str__(self) -> str:
+    return f'{{ "number": {self._number}, "binary": {self._binary}, "gray": {self._gray} }}'
+
 def binary_to_int(b: str) -> int:
   """
   Function to change binary to integer.
@@ -94,6 +97,33 @@ def format_to_n_bits(binary: str, bits: int) -> str:
 
   return formatted_binary
 
+def number_of_bits_for_a_range(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  validate = True
+):
+  x0, xf = rng
+  p10 = 0
+
+  if validate:
+    if x0 >= xf:
+      raise Exception(f'Bad range, {xf} must be greater than {x0}.')
+
+    if precision <= 0 or precision > 1:
+      raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
+
+    p10 = pow(precision, -1) if precision != 1 else 1
+
+    if p10 != 1 and p10 % 10 != 0:
+      raise Exception(f'Bad precision: {precision} must be a positive decimal fraction or 1.')
+  else:
+    p10 = pow(precision, -1) if precision != 1 else 1
+
+  n_decimal_digits = int(round(log(p10, 10)))
+  bits = int(round((log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)))
+
+  return bits
+
 def range_of_numbers_binary_and_gray(
   rng: Tuple[Union[float, int], Union[float, int]],
   precision: Union[float, int]
@@ -124,10 +154,11 @@ def range_of_numbers_binary_and_gray(
   """
   x0, xf = rng
 
-  if precision < 0 or precision > 1:
-    raise Exception(
-      'Precision can be only a positive decimal fraction between <0, 1]'
-    )
+  if x0 >= xf:
+    raise Exception(f'Bad range, {xf} must be greater than {x0}.')
+
+  if precision <= 0 or precision > 1:
+    raise Exception('Precision can be only a positive decimal fraction between <0, 1]')
 
   p10 = pow(precision, -1) if precision != 1 else 1
 
@@ -135,7 +166,7 @@ def range_of_numbers_binary_and_gray(
     raise Exception(f'Bad precision: {precision} should be a positive decimal fraction or 1.')
 
   n_decimal_digits = int(round(log(p10, 10)))
-  bits = int(round((log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)))
+  bits = number_of_bits_for_a_range(rng, precision, False)
   numbers: List[NumberBinaryAndGray] = []
 
   for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
