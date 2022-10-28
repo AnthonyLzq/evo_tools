@@ -105,7 +105,12 @@ def canonical_algorithm():
   )
 
   print('\n#############################################')
-  print('Running the canonical algorithm: \n')
+  print('Running the canonical algorithm for: \n')
+  print(f'Function: {ecuation} = 0')
+  print(f'Precision: {precision}')
+  print(f'Ranges: {ranges}')
+  print('\n#############################################')
+
   start = time.time()
   scores, solution, result = population.canonical_algorithm(70, PRINT = True)
   end = time.time()
