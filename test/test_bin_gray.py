@@ -1,6 +1,8 @@
 import pytest
 from evo_tools import bin_gray
+from math import log, log2
 from scipy.spatial.distance import hamming
+from typing import Tuple, Union
 
 @pytest.mark.parametrize(
   'binary, integer',
@@ -77,3 +79,75 @@ def test_format_to_n_bits(
 )
 def test_mutate_binary_or_gray(binary: str, result: str, distance: int) -> None:
   assert hamming(list(binary), list(result)) * len(result) == distance
+
+@pytest.mark.parametrize(
+  'rng, precision, validate',
+  [
+    ((0, 5), 0.1, True),
+    ((0, 3), 0.1, True),
+    ((-1, 4), 0.01, True)
+  ]
+)
+def test_number_of_bits_for_a_range(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  validate: bool
+) -> None:
+  x0, xf = rng
+  p10 = pow(precision, -1) if precision != 1 else 1
+  n_decimal_digits = int(round(log(p10, 10)))
+  bits = int(round((log2((xf - x0) * pow(10, n_decimal_digits)) + 0.9)))
+
+  assert bits == bin_gray.number_of_bits_for_a_range(rng, precision, validate)
+
+@pytest.mark.parametrize(
+  'rng, precision, validate',
+  [
+    ((0, -5), 0.1, True)
+  ]
+)
+def test_number_of_bits_for_a_range_throw_bad_range_error(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  validate: bool
+) -> None:
+  x0, xf = rng
+  with pytest.raises(
+    Exception,
+    match = f'Bad range, {xf} must be greater than {x0}.'
+  ):
+    bin_gray.number_of_bits_for_a_range(rng, precision, validate)
+
+@pytest.mark.parametrize(
+  'rng, precision, validate',
+  [
+    ((0, 5), -0.1, True)
+  ]
+)
+def test_number_of_bits_for_a_range_throw_precision_error_out_of_bounds(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  validate: bool
+) -> None:
+  with pytest.raises(
+    Exception,
+    match = 'Precision can be only a positive decimal fraction between <0, 1].'
+  ):
+    bin_gray.number_of_bits_for_a_range(rng, precision, validate)
+
+@pytest.mark.parametrize(
+  'rng, precision, validate',
+  [
+    ((0, 5), 0.2, True)
+  ]
+)
+def test_number_of_bits_for_a_range_throw_precision_error_precision_not_decimal(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  validate: bool
+) -> None:
+  with pytest.raises(
+    Exception,
+    match = f'Bad precision: {precision} must be a positive decimal fraction or 1.'
+  ):
+    bin_gray.number_of_bits_for_a_range(rng, precision, validate)
