@@ -39,8 +39,26 @@ python -m pip install --editable .
 
 ### Testing
 
-If you want to run the tests available, you can run:
+If you want to run all the tests available, you can run:
 
 ```bash
 pytest test -v
+```
+
+In case you want to test specific stuff from this package, there are to scripts available. In case you haven't installed the dependencies, now you have to do it, using:
+
+```bash
+python -m pip install --editable .
+```
+
+Then, you can run the tests for the bin_gray helpers running:
+
+```bash
+test_bin_gray
+```
+
+Or for the genectic algorithm:
+
+```bash
+test_algorithm
 ```

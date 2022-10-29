@@ -158,7 +158,7 @@ def range_of_numbers_binary_and_gray(
     raise Exception(f'Bad range, {xf} must be greater than {x0}.')
 
   if precision <= 0 or precision > 1:
-    raise Exception('Precision can be only a positive decimal fraction between <0, 1]')
+    raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
 
   p10 = pow(precision, -1) if precision != 1 else 1
 

@@ -151,3 +151,55 @@ def test_number_of_bits_for_a_range_throw_precision_error_precision_not_decimal(
     match = f'Bad precision: {precision} must be a positive decimal fraction or 1.'
   ):
     bin_gray.number_of_bits_for_a_range(rng, precision, validate)
+
+@pytest.mark.parametrize(
+  'rng, precision',
+  [
+    ((0, 5), -0.1)
+  ]
+)
+def test_range_of_numbers_binary_and_gray_throw_precision_error_out_of_bounds(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int]
+) -> None:
+  with pytest.raises(
+    Exception,
+    match = 'Precision can be only a positive decimal fraction between <0, 1].'
+  ):
+    bin_gray.range_of_numbers_binary_and_gray(rng, precision)
+
+@pytest.mark.parametrize(
+  'rng, precision',
+  [
+    ((0, 5), 0.3)
+  ]
+)
+def test_range_of_numbers_binary_and_gray_throw_precision_error_precision_not_decimal(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int]
+) -> None:
+  with pytest.raises(
+    Exception,
+    match = f'Bad precision: {precision} should be a positive decimal fraction or 1.'
+  ):
+    bin_gray.range_of_numbers_binary_and_gray(rng, precision)
+
+@pytest.mark.parametrize(
+  'rng, precision',
+  [
+    ((0, 5), 0.1),
+    ((0, 3), 0.1),
+    ((-1, 4), 0.01)
+  ]
+)
+def test_range_of_numbers_binary_and_gray(
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int]
+) -> None:
+  x0, xf = rng
+  numbers, bits = bin_gray.range_of_numbers_binary_and_gray(rng, precision)
+
+  calculated_bits = bin_gray.number_of_bits_for_a_range(rng, precision, False)
+  len_numbers = int((xf - x0) / precision + 1)
+
+  assert len_numbers == len(numbers) and bits == calculated_bits
