@@ -5,7 +5,7 @@ from functools import reduce
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 
-from evo_tools.bin_gray import NumberBinaryAndGray, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
+from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from evo_tools.helpers import sub_strings_by_array
 
 class Individual():
@@ -67,7 +67,7 @@ class SubPopulation():
   rng: Tuple[Union[float, int], Union[float, int]]
     The range specified for this SubPopulation, for this case (1, 2)
 
-  numbers: List[NumberBinaryAndGray]
+  numbers: List[NumberBinaryGrayRepresentation]
 
   bits: int
     Number of bits used for represent the float value.
@@ -75,7 +75,7 @@ class SubPopulation():
   def __init__(
     self,
     rng: Tuple[Union[float, int], Union[float, int]],
-    numbers: List[NumberBinaryAndGray],
+    numbers: List[NumberBinaryGrayRepresentation],
     bits: int,
   ) -> None:
     self.rng = rng
@@ -189,7 +189,7 @@ class Population():
     self._initial_population: List[Individual] = []
     self._best_individual: Individual
 
-    p10 = pow(precision, -1) if precision != 1 else 1
+    p10 = 1 if precision == 1 else pow(precision, -1)
     self._n_decimal_digits = int(round(log(p10, 10)))
 
     for rng in ranges:
@@ -200,7 +200,6 @@ class Population():
       self._sub_populations.append(
         SubPopulation(rng, sub_population_range, bits)
       )
-
     self._max_sample_size = len(self._sub_populations[0].numbers)
 
     for sub_population in self._sub_populations:
@@ -260,7 +259,7 @@ class Population():
 
       return self._initial_population.copy()
     else:
-      samples: List[Tuple[List[NumberBinaryAndGray], int]] = []
+      samples: List[Tuple[List[NumberBinaryGrayRepresentation], int]] = []
       binaries = []
       grays = []
       scores = []
@@ -271,15 +270,15 @@ class Population():
           sub_population.bits
         ))
 
-      f_sample, _ = samples[0]
+      first_sample, _ = samples[0]
 
-      for i, __ in enumerate(f_sample):
+      for i, __ in enumerate(first_sample):
         binary: str = ''
         gray: str = ''
         bits: List[int] = []
 
-        for j, _ in enumerate(self._sub_populations):
-          current_sample, current_bits = samples[j]
+        for s in samples:
+          current_sample, current_bits = s
           bits.append(current_bits)
           binary += current_sample[i].get_binary()
           gray += current_sample[i].get_gray()
@@ -357,7 +356,7 @@ class Population():
 
     return True
 
-  def _parents_selection_by_roulette(
+  def _parents_selection_by_fitness_proportionate_selection(
     self,
     seed: float
   ) -> List[Tuple[Individual, Individual]]:
@@ -375,13 +374,16 @@ class Population():
     """
     total_population = len(self._current_population)
     parents_candidates = np.array(self._current_population)
-    generation_score = np.array(
+    generation_scores = np.array(
       [individual.get_score() for individual in parents_candidates]
     )
+    generation_score = sum(generation_scores)
     random_parents_indexes_chosen = np.random.choice(
       total_population,
       size = (round(seed), 2),
-      p = generation_score / sum(generation_score)
+      p = np.array(
+        [x + generation_score / 2 for x in generation_scores]
+      ) / (generation_score + generation_score / 2 * len(generation_scores))
     )
     unique_random_parents_indexes_chosen, _ = np.unique(
       [
@@ -422,7 +424,7 @@ class Population():
     Returns:
       List[Individual]: n children
     """
-    parents = self._parents_selection_by_roulette(seed)
+    parents = self._parents_selection_by_fitness_proportionate_selection(seed)
 
     if len(parents) == 0:
       return []
@@ -548,7 +550,7 @@ class Population():
 
   def _fitness(self, population_sample: List[Individual], minimize = True) -> None:
     """
-    Method that calculates the fitness genotype of a given function for the
+    Method that calculates the genotype fitness of a given function for the
     current population.
 
     Args:
@@ -562,12 +564,14 @@ class Population():
     function_evaluations = []
 
     for i, individual in enumerate(population_sample):
+      # 10010110101, [2, 3, 3, 3]
       chromosome = individual.get_binary()
 
       if (self._print):
         print(f'Chromosome {i}: {chromosome}')
 
       gens = sub_strings_by_array(chromosome, bits)
+      # ['10', '010', '110', '101']
       fens: List[float] = []
 
       for i, gen in enumerate(gens):
@@ -588,6 +592,7 @@ class Population():
       function: exp = sympify(str(self._function))
 
       if len(gens) == len(fens):
+        # Evaluate the given function variable per variable
         for i, v in enumerate(variables_array):
           function = function.subs(v, fens[i])  # type: ignore
 
@@ -630,9 +635,9 @@ class Population():
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
-    ITERATIONS = 200,
+    ITERATIONS = 100,
     MINIMIZE = True,
-    SEED = 1.8,
+    SEED = 1.5,
     PRINT = False
   ) -> Tuple[List[float], Dict[str, str], exp]:
     """
@@ -679,9 +684,9 @@ class Population():
     if PRINT:
       print(
         f'{current_iteration}º iteration, best individual: {self._best_individual}'
-    )
+      )
 
-    for i in range(ITERATIONS):
+    for i in range(ITERATIONS - 1):
       current_iteration += 1
       children = self._crossover_one_point(SAMPLE_SIZE * SEED)
       self._select(children, MINIMIZE, SAMPLE_SIZE)

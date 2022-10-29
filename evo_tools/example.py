@@ -90,15 +90,23 @@ def generate_precision_and_ranges(variables: str):
 
   return precision, ranges
 
-def canonical_algorithm():
+def canonical_algorithm(
+  crossover_rate = 1,
+  mutation_rate = 0.1,
+  sample_size = 45,
+  iterations = 100,
+  minimize = True,
+  seed = 1.5,
+  _print = False
+):
   variables, ecuation = generate_variables_and_ecuation()
   precision, ranges = generate_precision_and_ranges(variables)
 
   population = Population(
     ranges,
     precision,
-    crossover_rate = 1,
-    mutation_rate = 0.1,
+    crossover_rate,
+    mutation_rate,
     variables = variables,
     function = sympify(ecuation),
     _print = False
@@ -112,7 +120,13 @@ def canonical_algorithm():
   print('\n#############################################')
 
   start = time.time()
-  scores, solution, result = population.canonical_algorithm(70, PRINT = True)
+  scores, solution, result = population.canonical_algorithm(
+    sample_size,
+    iterations,
+    minimize,
+    seed,
+    _print
+  )
   end = time.time()
 
   print()
