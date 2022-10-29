@@ -188,6 +188,7 @@ class Population():
     self._current_population: List[Individual] = []
     self._initial_population: List[Individual] = []
     self._best_individual: Individual
+    self._selection_strength: float = 0
 
     p10 = 1 if precision == 1 else pow(precision, -1)
     self._n_decimal_digits = int(round(log(p10, 10)))
@@ -324,11 +325,27 @@ class Population():
     mutated_individuals = self._mutation(individuals)
     self._fitness(mutated_individuals, minimize)
     mutated_individuals.sort(reverse = minimize, key = lambda x: x.get_score())
+
+    # Calculate the mean and std of the population before the selection
+    current_population_score = np.array([
+      x.get_score() for x in self._current_population
+    ])
+    score_std_before_selection = np.std(current_population_score)
+    score_mean_before_selection = np.mean(current_population_score)
+
     self._update_current_population(
       self._current_population[
         :len(self._current_population) - len(mutated_individuals)
       ] + mutated_individuals[:sample_size]
     )
+
+    # Calculate the mean of the population after the selection
+    current_population_score = np.array([
+      x.get_score() for x in self._current_population
+    ])
+    score_mean_after_selection = np.mean(current_population_score)
+    self._selection_strength = abs((score_mean_after_selection - score_mean_before_selection) / score_std_before_selection)
+
     self._best_individual = self._current_population[0]
 
   def _validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
@@ -356,7 +373,7 @@ class Population():
 
     return True
 
-  def _parents_selection_by_fitness_proportionate_selection(
+  def _parents_selection_by_fitness_proportionate(
     self,
     seed: float
   ) -> List[Tuple[Individual, Individual]]:
@@ -424,7 +441,7 @@ class Population():
     Returns:
       List[Individual]: n children
     """
-    parents = self._parents_selection_by_fitness_proportionate_selection(seed)
+    parents = self._parents_selection_by_fitness_proportionate(seed)
 
     if len(parents) == 0:
       return []
@@ -683,7 +700,7 @@ class Population():
 
     if PRINT:
       print(
-        f'{current_iteration}º iteration, best individual: {self._best_individual}'
+        f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
       )
 
     for i in range(ITERATIONS - 1):
@@ -692,17 +709,20 @@ class Population():
       self._select(children, MINIMIZE, SAMPLE_SIZE)
       scores.append(self._best_individual.get_score())
 
-      if round(self._best_individual.get_score(), 3) <= 1e-3:
+      if self._selection_strength <= 1e-4:
+        break
+
+      if round(self._best_individual.get_score(), 3) <= 1e-4:
         break
 
       if PRINT:
         print(
-          f'{current_iteration}º iteration, best individual: {self._best_individual}'
+          f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
         )
 
     if PRINT:
       print(
-        f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}'
+        f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
       )
 
     binaries = sub_strings_by_array(

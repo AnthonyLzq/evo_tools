@@ -35,5 +35,5 @@ def test_canonical_algorithm_cuadratic(a, b) -> None:
   return_value = (1, [(12, 60), (12, 60), (12, 60), (12, 60)])
 )
 def test_canonical_algorithm(a, b) -> None:
-  result = abs(example.canonical_algorithm(mutation_rate = 0.2))
+  result = abs(example.canonical_algorithm(mutation_rate = 0.2, _print = True))
   assert round(result, 2) <= 0.1  # type: ignore
