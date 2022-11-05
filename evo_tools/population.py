@@ -1129,7 +1129,7 @@ class Population():
     PARENT_SELECTION_METHOD: ParentSelectionMethods = 'fitness_proportionate',
     CROSSOVER_METHOD: CrossoverMethods = 'one_point',
     MUTATION_METHOD: MutationMethods = 'one_point'
-  ) -> Tuple[List[float], Dict[str, str], exp]:
+  ) -> Tuple[List[float], Dict[str, str], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
     1. select initial population
@@ -1163,9 +1163,10 @@ class Population():
       given intervals.
 
     Returns:
-      Tuple[List[float], Dict[str, str], exp]: A tuple that contains the list of
-      historical scores from each generation, a Dict with the solution for each
-      given variable and the result calculated for the obtained solution.
+      Tuple[List[float], Dict[str, str], exp, fitness_avg_list]: A tuple that
+      contains the list of historical scores from each generation, a Dict with
+      the solution for each given variable, the result calculated for the
+      obtained solution and the average of the fitness per each generation.
     """
     self._validate_parents_selection_methods(PARENT_SELECTION_METHOD)
     self._validate_crossover_methods(CROSSOVER_METHOD)
@@ -1283,4 +1284,4 @@ class Population():
       print(f'  Evaluation: {function}')
       print(f'  Fitness average: {fitness_avg_list}')
 
-    return scores, solution, function
+    return scores, solution, function, fitness_avg_list
