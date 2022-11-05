@@ -344,7 +344,9 @@ class Population():
       x.get_score() for x in self._current_population
     ])
     score_mean_after_selection = np.mean(current_population_score)
-    self._selection_strength = abs((score_mean_after_selection - score_mean_before_selection) / score_std_before_selection)
+    self._selection_strength = abs(
+      (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
+    ) if score_std_before_selection > 0 else 0
 
     self._best_individual = self._current_population[0]
 
