@@ -12,7 +12,8 @@ from evo_tools import example
 )
 @skip('')
 def test_canonical_algorithm_linear(a, b) -> None:
-  result = abs(example.canonical_algorithm())
+  _, __, result, ___ = example.canonical_algorithm()
+  result = abs(result)
   assert round(result, 3) <= 0.015  # type: ignore
 
 @patch(
@@ -25,8 +26,8 @@ def test_canonical_algorithm_linear(a, b) -> None:
 )
 @skip('')
 def test_canonical_algorithm_quadratic(a, b) -> None:
-  result = abs(example.canonical_algorithm())
-  assert round(result, 2) <= 0.021  # type: ignore
+  _, __, result, ___ = example.canonical_algorithm()
+  result = abs(result)  assert round(result, 2) <= 0.021  # type: ignore
 
 @patch(
   'evo_tools.example.generate_variables_and_equation',
@@ -38,8 +39,8 @@ def test_canonical_algorithm_quadratic(a, b) -> None:
 )
 @skip('')
 def test_canonical_algorithm_polygonal(a, b) -> None:
-  result = abs(example.canonical_algorithm(mutation_rate = 0.2, _print = True))
-
+  _, __, result, ___ = example.canonical_algorithm()
+  result = abs(result)
   assert round(result, 2) <= 0.1  # type: ignore
 
 @patch(
