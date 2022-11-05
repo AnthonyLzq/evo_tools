@@ -1,4 +1,6 @@
 import numpy as np
+import pandas as pd
+from json import loads
 from random import choice, sample, random
 from math import log
 from functools import reduce
@@ -21,12 +23,18 @@ class Individual():
     binary: str,
     gray: str,
     score: float,
-    bits: List[int]
+    bits: List[int],
+    numbers: str,
+    function,
+    variables_array: List[str]
   ) -> None:
     self._binary = binary
     self._gray = gray
     self._score = score
     self._bits = bits
+    self._numbers = numbers
+    self._function = function
+    self._variables_array = variables_array
 
   def get_binary(self) -> str:
     return self._binary
@@ -46,8 +54,38 @@ class Individual():
   def set_score(self, score: float) -> None:
     self._score = score
 
+  def get_numbers(self) -> str:
+    return self._numbers
+
+  def _str_bits(self, bits: List[int]) -> str:
+    result = '['
+
+    for i, bit in enumerate(bits):
+      if i != len(bits) - 1:
+        result += f'{bit}, '
+      else:
+        result += f'{bit}]'
+
+    return result
+
+  def _evaluate_function(self):
+    numbers = loads(self._numbers)
+    f = self._function.copy()
+
+    for i, n in enumerate(numbers):
+      f = f.subs(self._variables_array[i], n)
+
+    return f
+
   def __str__(self) -> str:
-    return f'{{ "binary": "{self._binary}", "gray": "{self._gray}", "score": "{self._score}", "bits": {self._bits} }}'
+    return f'{{ \
+"binary": "{self._binary}", \
+"gray": "{self._gray}", \
+"numbers": "{self._numbers}", \
+"bits": "{self._str_bits(self._bits)}", \
+"score": "{self._score}", \
+"fitness": "{self._evaluate_function()}" \
+}}'
 
   def __repr__(self) -> str:
     return str(self)
@@ -265,9 +303,6 @@ class Population():
       return self._initial_population.copy()
     else:
       samples: List[Tuple[List[NumberBinaryGrayRepresentation], int]] = []
-      binaries = []
-      grays = []
-      scores = []
 
       for sub_population in self._sub_populations:
         samples.append((
@@ -277,21 +312,34 @@ class Population():
 
       first_sample, _ = samples[0]
 
-      for i, __ in enumerate(first_sample):
-        binary: str = ''
-        gray: str = ''
+      for i, _ in enumerate(first_sample):
+        binary = ''
+        gray = ''
+        numbers = '['
         bits: List[int] = []
 
-        for s in samples:
+        for j, s in enumerate(samples):
           current_sample, current_bits = s
           bits.append(current_bits)
           binary += current_sample[i].get_binary()
           gray += current_sample[i].get_gray()
 
-        binaries.append(binary)
-        grays.append(gray)
-        scores.append(0)
-        self._initial_population.append(Individual(binary, gray, 0, bits))
+          if j != len(samples) - 1:
+            numbers += f'{current_sample[i].get_number()}, '
+          else:
+            numbers += f'{current_sample[i].get_number()}]'
+
+        self._initial_population.append(
+          Individual(
+            binary,
+            gray,
+            0,
+            bits,
+            numbers,
+            sympify(str(self._function)),
+            self._variables.split()
+          )
+        )
 
       self._current_population = self._initial_population.copy()
 
@@ -318,6 +366,11 @@ class Population():
     Args:
       new_population (List[Individual])
     """
+    if (len(new_population) > self._sample_size):
+      self._current_population = new_population[:self._sample_size]
+
+      return
+
     self._current_population = new_population
 
   def _select(
@@ -566,12 +619,28 @@ class Population():
 
         if are_first_binaries_valid:
           children.append(
-            Individual(binary_children[0], gray_children[0], 0, bits)
+            Individual(
+              binary_children[0],
+              gray_children[0],
+              0,
+              bits,
+              self._get_fen(binary_children[0], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
           )
 
         if are_second_binaries_valid:
           children.append(
-            Individual(binary_children[1], gray_children[1], 0, bits)
+            Individual(
+              binary_children[1],
+              gray_children[1],
+              0,
+              bits,
+              self._get_fen(binary_children[1], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
           )
 
     return children
@@ -630,12 +699,28 @@ class Population():
 
         if are_first_binaries_valid:
           children.append(
-            Individual(binary_children[0], gray_children[0], 0, bits)
+            Individual(
+              binary_children[0],
+              gray_children[0],
+              0,
+              bits,
+              self._get_fen(binary_children[0], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
           )
 
         if are_second_binaries_valid:
           children.append(
-            Individual(binary_children[1], gray_children[1], 0, bits)
+            Individual(
+              binary_children[1],
+              gray_children[1],
+              0,
+              bits,
+              self._get_fen(binary_children[1], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
           )
 
     return children
@@ -684,7 +769,15 @@ class Population():
           )
 
           if are_binaries_valid:
-            mutated_child = Individual(binary, gray, 0, bits)
+            mutated_child = Individual(
+              binary,
+              gray,
+              0,
+              bits,
+              self._get_fen(binary, bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
             mutated_children.pop()
             mutated_children.append(mutated_child)
 
@@ -865,6 +958,45 @@ class Population():
       case _:
         raise Exception('Mutation method not allowed')
 
+  def _get_fen(self, binary_or_gray: str, bits: List[int]):
+    binaries = sub_strings_by_array(
+      binary_or_gray,
+      bits
+    )
+    ranges: List[Tuple[float | int, float | int]] = []
+
+    for i, binary in enumerate(binaries):
+      try:
+        _range = self._sub_populations[i].rng
+        fen = binary_to_float(binary, _range, self._precision)
+        x0, xf = _range
+
+        if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
+          pass
+        else:
+          ranges.append(_range)
+      except:
+        pass
+
+    numbers = '['
+
+    for i, rng in enumerate(ranges):
+      binary = binaries[i]
+
+      try:
+        fen = binary_to_float(binary, rng, self._precision).get_number()
+        numbers += f'{fen}, '
+      except:
+        pass
+
+    strToReplace = ', '
+    replacementStr = ']'
+    strToReplaceReversed = strToReplace[::-1]
+    replacementStrReversed = replacementStr[::-1]
+    numbers = numbers[::-1].replace(strToReplaceReversed, replacementStrReversed, 1)[::-1]
+
+    return numbers
+
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
@@ -931,6 +1063,8 @@ class Population():
       print(
         f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
       )
+      df = pd.DataFrame(loads(str(self._current_population)))
+      print(df)
 
     for i in range(ITERATIONS - 1):
       current_iteration += 1
@@ -952,6 +1086,8 @@ class Population():
         print(
           f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
         )
+        df = pd.DataFrame(loads(str(self._current_population)))
+        print(df)
 
     if PRINT:
       print(
@@ -988,11 +1124,11 @@ class Population():
       fen = binary_to_float(binary, rng, self._precision)
       floats.append(fen.get_number())
 
-    function: exp = sympify(str(self._function))
+    function = sympify(str(self._function))
     solution: Dict[str, str] = {}
 
     for i, v in enumerate(variables_array):
-      function = function.subs(v, floats[i])  # type: ignore
+      function = function.subs(v, floats[i])
       solution[v] = floats[i]
 
     if PRINT:
