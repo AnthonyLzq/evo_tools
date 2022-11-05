@@ -3,10 +3,13 @@ from random import choice, sample, random
 from math import log
 from functools import reduce
 from sympy import exp, sympify
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Literal
+from traceback import print_exc
 
 from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
 from evo_tools.helpers import sub_strings_by_array
+
+methods = ['fitness_proportionate', 'roulette']
 
 class Individual():
   """
@@ -380,12 +383,13 @@ class Population():
     seed: float
   ) -> List[Tuple[Individual, Individual]]:
     """
-    Method that selects parents based on the probability: own_score/generation_score.
+    Method that selects parents based on the following probability:
+      (own_score + K)/(generation_score + K*len(scores)).
     Both parents have to be different from each other at least in one bit.
 
     Args:
-      seed (float): a float value that will be rounded to int. This value will
-      set the maximum amount of parents to be generated.
+      seed (float): value that will be rounded to int. This value will set the
+      maximum amount of parents to be generated.
 
     Returns:
       List[Tuple[Individual, Individual]]: list that contains a pair of
@@ -432,7 +436,67 @@ class Population():
 
     return parents
 
-  def _crossover_one_point(self, seed: float) -> List[Individual]:
+  def _parents_selection_by_roulette(
+    self,
+    seed: float
+  ):
+    """
+    Method that selects parents based in the following probability:
+      own_score/generation_score.
+    Both parents have to be different from each other at least in one bit.
+
+    Args:
+      seed (float): value that will be rounded to int. This value will set the
+      maximum amount of parents to be generated.
+
+    Returns:
+      List[Tuple[Individual, Individual]]: list that contains a pair of
+      different parents.
+    """
+    total_population = len(self._current_population)
+    parents_candidates = np.array(self._current_population)
+    generation_scores = np.array(
+      [individual.get_score() for individual in parents_candidates]
+    )
+    generation_score = sum(generation_scores)
+    random_parents_indexes_chosen = np.random.choice(
+      total_population,
+      size = (round(seed), 2),
+      p = generation_score / sum(generation_scores)
+    )
+    unique_random_parents_indexes_chosen, _ = np.unique(
+      [
+        str(
+          np.ndarray.tolist(index)
+        )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
+      ],
+      return_index = True
+    )
+    final_parents_indexes = list(
+      filter(
+        lambda a: a[0] != a[1],
+        map(
+          lambda e: [int(i) for i in e.split(',')],
+          unique_random_parents_indexes_chosen
+        )
+      )
+    )
+    parents: List[Tuple[Individual, Individual]] = []
+
+    for indexes in final_parents_indexes:
+      i_1, i_2 = indexes
+      parents.append((
+        self._current_population[i_1],
+        self._current_population[i_2]
+      ))
+
+    return parents
+
+  def _crossover_one_point(
+    self,
+    seed: float,
+    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+  ) -> List[Individual]:
     """
     Method that creates n children from 2 * n parents combining their genotype
     based in the crossover probability.
@@ -443,7 +507,7 @@ class Population():
     Returns:
       List[Individual]: n children
     """
-    parents = self._parents_selection_by_fitness_proportionate(seed)
+    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
 
     if len(parents) == 0:
       return []
@@ -583,14 +647,12 @@ class Population():
     function_evaluations = []
 
     for i, individual in enumerate(population_sample):
-      # 10010110101, [2, 3, 3, 3]
       chromosome = individual.get_binary()
 
       if (self._print):
         print(f'Chromosome {i}: {chromosome}')
 
       gens = sub_strings_by_array(chromosome, bits)
-      # ['10', '010', '110', '101']
       fens: List[float] = []
 
       for i, gen in enumerate(gens):
@@ -651,13 +713,42 @@ class Population():
         score = 1e-3 + abs(e) - mini
         population_sample[i].set_score(score)
 
+  def _generate_parents_using_a_method(
+    self,
+    seed: float,
+    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+  ):
+    match parent_selection_method:
+      case 'fitness_proportionate':
+        return self._parents_selection_by_fitness_proportionate(seed)
+      case 'roulette':
+        return self._parents_selection_by_roulette(seed)
+      case _:
+        raise Exception('Method not allowed')
+
+  def _validate_parents_selection_methods(
+    self,
+    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+  ):
+    match parent_selection_method:
+      case 'fitness_proportionate':
+        return
+      case 'roulette':
+        return
+      case _:
+        raise Exception('Method not allowed')
+
   def canonical_algorithm(
     self,
     SAMPLE_SIZE: int,
     ITERATIONS = 100,
     MINIMIZE = True,
     SEED = 1.5,
-    PRINT = False
+    PRINT = False,
+    PARENT_SELECTION_METHOD: Literal[
+      'fitness_proportionate',
+      'roulette'
+    ] = 'fitness_proportionate'
   ) -> Tuple[List[float], Dict[str, str], exp]:
     """
     Canonical algorithm that follows the following steps:
@@ -690,6 +781,7 @@ class Population():
       historical scores from each generation, a Dict with the solution for each
       given variable and the result calculated for the obtained solution.
     """
+    self._validate_parents_selection_methods(PARENT_SELECTION_METHOD)
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
     self._current_population.sort(
@@ -707,7 +799,10 @@ class Population():
 
     for i in range(ITERATIONS - 1):
       current_iteration += 1
-      children = self._crossover_one_point(SAMPLE_SIZE * SEED)
+      children = self._crossover_one_point(
+        SAMPLE_SIZE * SEED,
+        PARENT_SELECTION_METHOD
+      )
       self._select(children, MINIMIZE, SAMPLE_SIZE)
       scores.append(self._best_individual.get_score())
 
@@ -752,17 +847,10 @@ class Population():
     variables_array = self._variables.split()
     floats: List[str] = []
 
-    for rng in ranges:
-      for binary in binaries:
-        try:
-          fen = binary_to_float(binary, rng, self._precision)
-          floats.append(fen.get_number())
-        except:
-          floats.append('fail')
-          pass
-
-      if len(floats) > 0:
-        break
+    for i, rng in enumerate(ranges):
+      binary = binaries[i]
+      fen = binary_to_float(binary, rng, self._precision)
+      floats.append(fen.get_number())
 
     function: exp = sympify(str(self._function))
     solution: Dict[str, str] = {}

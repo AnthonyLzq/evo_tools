@@ -10,6 +10,7 @@ from evo_tools import example
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.1, [(0, 10), (0, 10), (0, 10)])
 )
+@skip('')
 def test_canonical_algorithm_linear(a, b) -> None:
   result = abs(example.canonical_algorithm())
   assert round(result, 3) <= 0.015  # type: ignore
@@ -22,6 +23,7 @@ def test_canonical_algorithm_linear(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.1, [(0, 10), (0, 10), (0, 10)])
 )
+@skip('')
 def test_canonical_algorithm_cuadratic(a, b) -> None:
   result = abs(example.canonical_algorithm())
   assert round(result, 2) <= 0.021  # type: ignore
@@ -34,6 +36,19 @@ def test_canonical_algorithm_cuadratic(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (1, [(12, 60), (12, 60), (12, 60), (12, 60)])
 )
-def test_canonical_algorithm(a, b) -> None:
+@skip('')
+def test_canonical_algorithm_polygonal(a, b) -> None:
   result = abs(example.canonical_algorithm(mutation_rate = 0.2, _print = True))
+
   assert round(result, 2) <= 0.1  # type: ignore
+@patch(
+  'evo_tools.example.generate_variables_and_ecuation',
+  return_value = ('x y', 'sin(y) * exp((1 - cos(x)) ** 2) + cos(x) * exp((1 - sin(y)) ** 2) + (x + y) ** 2')
+)
+@patch(
+  'evo_tools.example.generate_precision_and_ranges',
+  return_value = (0.01, [(-14, 0), (-7, 0)])
+)
+def test_canonical_algorithm_sine_and_exponential(a, b) -> None:
+  result = abs(example.canonical_algorithm(mutation_rate = 0.2, _print = True, sample_size = 8))
+  assert round(result, 2) <= 1  # type: ignore
