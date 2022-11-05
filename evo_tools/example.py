@@ -143,5 +143,5 @@ def canonical_algorithm(
 
   return result
 
-if __name__ == '__main__':
-  canonical_algorithm()
+# if __name__ == '__main__':
+#   canonical_algorithm()
