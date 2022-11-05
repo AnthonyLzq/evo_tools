@@ -2,9 +2,9 @@ import time
 from typing import Tuple
 from sympy import sympify
 
-from evo_tools.population import Population
+from evo_tools.population import Population, ParentSelectionMethods, CrossoverMethods
 
-def generate_variables_and_ecuation() -> Tuple[str, str]:
+def generate_variables_and_equation() -> Tuple[str, str]:
   while True:
     variables = input('Welcome, please ingress your variables space separated (x y z ...): ')
     coefficients = input('- Please, ingress your coefficients space separated: ')
@@ -24,8 +24,8 @@ def generate_variables_and_ecuation() -> Tuple[str, str]:
     if exponents_list.__contains__(0):
       raise Exception('An exponent can not be zero')
 
-    is_correct_input = '\n- Is this ecuation correct: f: '
-    ecuation = ''
+    is_correct_input = '\n- Is this equation correct: f: '
+    equation = ''
 
     for i, variable in enumerate(variables_list):
       current_coefficient = coefficients_list[i]
@@ -34,26 +34,26 @@ def generate_variables_and_ecuation() -> Tuple[str, str]:
       if abs(float(current_coefficient)) != 1:
         if float(current_coefficient) > 0:
           if i != 0:
-            ecuation += f' + {current_coefficient} * '
+            equation += f' + {current_coefficient} * '
           else:
-            ecuation += f'{current_coefficient} * '
+            equation += f'{current_coefficient} * '
         else:
           aux = current_coefficient.split('-')
-          ecuation += f' {"- ".join(aux)} * '
+          equation += f' {"- ".join(aux)} * '
       elif float(current_coefficient) == -1:
-        ecuation += ' - '
+        equation += ' - '
       elif i != 0:
-        ecuation += ' + '
+        equation += ' + '
 
       if float(current_exponent) != 1:
-        ecuation += f'{variable}'
-        ecuation += f'^{current_exponent}' \
+        equation += f'{variable}'
+        equation += f'^{current_exponent}' \
           if float(current_exponent) > 0 else f'^({current_exponent})'
       else:
-        ecuation += f'{variable}'
+        equation += f'{variable}'
 
-    ecuation += f' = {expected_result}'
-    is_correct_input += f' {ecuation} [y/n]: '
+    equation += f' = {expected_result}'
+    is_correct_input += f' {equation} [y/n]: '
 
     is_correct = input(f'{is_correct_input}')
 
@@ -61,11 +61,11 @@ def generate_variables_and_ecuation() -> Tuple[str, str]:
       break
 
   if float(expected_result) > 0:
-    ecuation = ecuation.replace('=', '-')
+    equation = equation.replace('=', '-')
   else:
-    ecuation = ecuation.replace('=', '+')
+    equation = equation.replace('=', '+')
 
-  return variables, ecuation
+  return variables, equation
 
 def generate_precision_and_ranges(variables: str):
   ranges = []
@@ -97,9 +97,11 @@ def canonical_algorithm(
   iterations = 100,
   minimize = True,
   seed = 1.5,
-  _print = False
+  _print = False,
+  parent_selection_method: ParentSelectionMethods = 'fitness_proportionate',
+  crossover_method: CrossoverMethods = 'one_point'
 ):
-  variables, ecuation = generate_variables_and_ecuation()
+  variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
 
   population = Population(
@@ -108,13 +110,13 @@ def canonical_algorithm(
     crossover_rate,
     mutation_rate,
     variables = variables,
-    function = sympify(ecuation),
+    function = sympify(equation),
     _print = False
   )
 
   print('\n#############################################')
   print('Running the canonical algorithm for: \n')
-  print(f'Function: {ecuation} = 0')
+  print(f'Function: {equation} = 0')
   print(f'Precision: {precision}')
   print(f'Ranges: {ranges}')
   print('\n#############################################')
@@ -125,7 +127,9 @@ def canonical_algorithm(
     iterations,
     minimize,
     seed,
-    _print
+    _print,
+    parent_selection_method,
+    crossover_method
   )
   end = time.time()
 

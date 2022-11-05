@@ -300,3 +300,11 @@ def mutate_binary_or_gray(b: str) -> str:
   new_bit = '0' if b[pos_bit] == '1' else '1'
 
   return b[:pos_bit] + new_bit + b[pos_bit + 1:]
+
+def generate_random_binary_with_a_len(len: int) -> str:
+  new_binary = ''
+
+  for _ in range(len):
+    new_binary += str(randint(0, 1))
+
+  return new_binary

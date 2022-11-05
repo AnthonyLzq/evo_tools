@@ -4,12 +4,12 @@ from math import log
 from functools import reduce
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union, Literal
-from traceback import print_exc
 
-from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray
+from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len
 from evo_tools.helpers import sub_strings_by_array
 
-methods = ['fitness_proportionate', 'roulette']
+ParentSelectionMethods = Literal['fitness_proportionate', 'roulette']
+CrossoverMethods = Literal['one_point', 'uniform']
 
 class Individual():
   """
@@ -462,7 +462,7 @@ class Population():
     random_parents_indexes_chosen = np.random.choice(
       total_population,
       size = (round(seed), 2),
-      p = generation_score / sum(generation_scores)
+      p = generation_scores / generation_score
     )
     unique_random_parents_indexes_chosen, _ = np.unique(
       [
@@ -495,7 +495,7 @@ class Population():
   def _crossover_one_point(
     self,
     seed: float,
-    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+    parent_selection_method: ParentSelectionMethods
   ) -> List[Individual]:
     """
     Method that creates n children from 2 * n parents combining their genotype
@@ -562,6 +562,70 @@ class Population():
               break
 
           attempts += 1
+
+        if are_first_binaries_valid:
+          children.append(
+            Individual(binary_children[0], gray_children[0], 0, bits)
+          )
+
+        if are_second_binaries_valid:
+          children.append(
+            Individual(binary_children[1], gray_children[1], 0, bits)
+          )
+
+    return children
+
+  def _crossover_uniform(
+    self,
+    seed: float,
+    parent_selection_method: ParentSelectionMethods
+  ):
+    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
+
+    if len(parents) == 0:
+      return []
+
+    total_bits = parents[0][0].get_total_bits()
+    bits = parents[0][0].get_bits()
+    children: List[Individual] = []
+
+    for p_parent in parents:
+      if random() < self._crossover_rate:
+        p0, p1 = p_parent
+        binary_p0, binary_p1 = p0.get_binary(), p1.get_binary()
+        gray_p0, gray_p1 = p0.get_gray(), p1.get_gray()
+        mask = generate_random_binary_with_a_len(total_bits)
+        binary_children: List[str] = ['', '']
+        gray_children: List[str] = ['', '']
+
+        for i, mask_element in enumerate(mask):
+          if mask_element == '0':
+            binary_children[0] += binary_p0[i]
+            gray_children[0] += gray_p0[i]
+
+            binary_children[1] += binary_p1[i]
+            gray_children[1] += gray_p1[i]
+          else:
+            binary_children[0] += binary_p1[i]
+            gray_children[0] += gray_p1[i]
+
+            binary_children[1] += binary_p0[i]
+            gray_children[1] += gray_p0[i]
+
+        first_binaries_to_validate = [
+          sub_strings_by_array(binary_children[0], bits),
+          sub_strings_by_array(gray_children[0], bits),
+        ]
+        second_binaries_to_validate = [
+          sub_strings_by_array(binary_children[1], bits),
+          sub_strings_by_array(gray_children[1], bits)
+        ]
+        are_first_binaries_valid = self._validate_binaries_in_range(
+          first_binaries_to_validate
+        )
+        are_second_binaries_valid = self._validate_binaries_in_range(
+          second_binaries_to_validate
+        )
 
         if are_first_binaries_valid:
           children.append(
@@ -716,7 +780,7 @@ class Population():
   def _generate_parents_using_a_method(
     self,
     seed: float,
-    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+    parent_selection_method: ParentSelectionMethods
   ):
     match parent_selection_method:
       case 'fitness_proportionate':
@@ -724,11 +788,11 @@ class Population():
       case 'roulette':
         return self._parents_selection_by_roulette(seed)
       case _:
-        raise Exception('Method not allowed')
+        raise Exception('Parent selection method not allowed')
 
   def _validate_parents_selection_methods(
     self,
-    parent_selection_method: Literal['fitness_proportionate', 'roulette']
+    parent_selection_method: ParentSelectionMethods
   ):
     match parent_selection_method:
       case 'fitness_proportionate':
@@ -737,6 +801,32 @@ class Population():
         return
       case _:
         raise Exception('Method not allowed')
+
+  def _do_crossover_using_a_method(
+    self,
+    seed: float,
+    crossover_method: CrossoverMethods,
+    parent_selection_method: ParentSelectionMethods
+  ):
+    match crossover_method:
+      case 'one_point':
+        return self._crossover_one_point(seed, parent_selection_method)
+      case 'uniform':
+        return self._crossover_uniform(seed, parent_selection_method)
+      case _:
+        raise Exception('Children generation method not allowed')
+
+  def _validate_crossover_methods(
+    self,
+    crossover_method: CrossoverMethods
+  ):
+    match crossover_method:
+      case 'one_point':
+        return
+      case 'uniform':
+        return
+      case _:
+        raise Exception('Children generation method not allowed')
 
   def canonical_algorithm(
     self,
@@ -745,10 +835,8 @@ class Population():
     MINIMIZE = True,
     SEED = 1.5,
     PRINT = False,
-    PARENT_SELECTION_METHOD: Literal[
-      'fitness_proportionate',
-      'roulette'
-    ] = 'fitness_proportionate'
+    PARENT_SELECTION_METHOD: ParentSelectionMethods = 'fitness_proportionate',
+    CROSSOVER_METHOD: CrossoverMethods = 'one_point'
   ) -> Tuple[List[float], Dict[str, str], exp]:
     """
     Canonical algorithm that follows the following steps:
@@ -771,6 +859,10 @@ class Population():
       number of parents. Defaults to 1.8.
       PRINT (bool, optional): a boolean that indicates if the output should be
       printed. Defaults to False.
+      PARENT_SELECTION_METHOD (ParentSelectionMethods, optional): a method to
+      select the parents. Defaults to 'fitness_proportionate'.
+      CHILDREN_GENERATION_METHOD (CrossoverMethods, optional): a method to
+      crossover. Defaults to 'one_point'.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
@@ -782,6 +874,7 @@ class Population():
       given variable and the result calculated for the obtained solution.
     """
     self._validate_parents_selection_methods(PARENT_SELECTION_METHOD)
+    self._validate_crossover_methods(CROSSOVER_METHOD)
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
     self._current_population.sort(
@@ -799,8 +892,9 @@ class Population():
 
     for i in range(ITERATIONS - 1):
       current_iteration += 1
-      children = self._crossover_one_point(
+      children = self._do_crossover_using_a_method(
         SAMPLE_SIZE * SEED,
+        CROSSOVER_METHOD,
         PARENT_SELECTION_METHOD
       )
       self._select(children, MINIMIZE, SAMPLE_SIZE)
