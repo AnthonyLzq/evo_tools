@@ -56,7 +56,8 @@ def test_canonical_algorithm_sine_and_exponential(a, b) -> None:
       _print = True,
       sample_size = 80,
       parent_selection_method = 'roulette',
-      crossover_method = 'uniform'
+      crossover_method = 'uniform',
+      mutation_method = 'flipping'
     )
   )
   assert round(result, 2) <= 1  # type: ignore

@@ -72,9 +72,9 @@ def test_format_to_n_bits(
 @pytest.mark.parametrize(
   'binary, result, distance',
   [
-    ('1011011010101', bin_gray.mutate_binary_or_gray('1011011010101'), 1),
-    ('1011011101011', bin_gray.mutate_binary_or_gray('1011011101011'), 1),
-    ('1101010101011', bin_gray.mutate_binary_or_gray('1101010101011'), 1)
+    ('1011011010101', bin_gray.mutate_n_bits_from_binary_or_gray('1011011010101'), 1),
+    ('1011011101011', bin_gray.mutate_n_bits_from_binary_or_gray('1011011101011'), 1),
+    ('1101010101011', bin_gray.mutate_n_bits_from_binary_or_gray('1101010101011'), 1)
   ]
 )
 def test_mutate_binary_or_gray(binary: str, result: str, distance: int) -> None:

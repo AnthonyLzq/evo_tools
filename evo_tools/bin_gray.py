@@ -285,21 +285,49 @@ def binary_to_float(
 
   return aux[0]
 
-def mutate_binary_or_gray(b: str) -> str:
+def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """
-  Function to change one bit from a given binary.
+  Function to change n bits from a given binary.
 
   Args:
-    b (str)
+    b (str): binary or gray to mutate.
+    n (int): number of bits to mutate. Default to 1.
 
   Returns:
-    str: binary with a bit changed
+    str: binary with n bits changed.
   """
   length = len(b) - 1
-  pos_bit = randint(0, length)
-  new_bit = '0' if b[pos_bit] == '1' else '1'
+  new_b = ''
+  pos_bits = [randint(0, length) for _ in range(0, n)]
 
-  return b[:pos_bit] + new_bit + b[pos_bit + 1:]
+  for pos_bit in pos_bits:
+    new_bit = '0' if b[pos_bit] == '1' else '1'
+    new_b = b[:pos_bit] + new_bit + b[pos_bit + 1:]
+
+  return new_b
+
+def mutation_binary_or_gray_by_flipping(b: str) -> str:
+  """
+  Function to mutate an uncertain number of bits based on a probability.
+
+  Args:
+    b (str): binary or gray to mutate.
+
+  Returns:
+    str: binary or gray with n bits changed.
+  """
+
+  new_b = ''
+
+  for bit in b:
+    new_bit = bit
+
+    if randint(0, 1) == 1:
+      new_bit = '0' if bit == '1' else '1'
+
+    new_b += new_bit
+
+  return new_b
 
 def generate_random_binary_with_a_len(len: int) -> str:
   new_binary = ''

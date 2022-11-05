@@ -5,11 +5,12 @@ from functools import reduce
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union, Literal
 
-from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len
+from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping
 from evo_tools.helpers import sub_strings_by_array
 
 ParentSelectionMethods = Literal['fitness_proportionate', 'roulette']
 CrossoverMethods = Literal['one_point', 'uniform']
+MutationMethods = Literal['one_point', 'two_points', 'flipping']
 
 class Individual():
   """
@@ -315,7 +316,7 @@ class Population():
     Method that updates the current sample, after crossover or mutation.
 
     Args:
-      new_population: List[Individual]
+      new_population (List[Individual])
     """
     self._current_population = new_population
 
@@ -639,7 +640,11 @@ class Population():
 
     return children
 
-  def _mutation(self, children: List[Individual]) -> List[Individual]:
+  def _mutation(
+    self,
+    children: List[Individual],
+    mutation_method: MutationMethods = 'one_point'
+  ) -> List[Individual]:
     """
     Method that changes 1 bit from a children based on the mutation probability.
 
@@ -661,7 +666,10 @@ class Population():
           print(f'  Mutation for child: {child}\n')
 
         while True:
-          binary = mutate_binary_or_gray(child.get_binary())
+          binary = self._do_mutation_using_a_method(
+            mutation_method,
+            child.get_binary()
+          )
           bits = child.get_bits()
           gray = format_to_n_bits(
             binary_to_gray(binary),
@@ -814,7 +822,7 @@ class Population():
       case 'uniform':
         return self._crossover_uniform(seed, parent_selection_method)
       case _:
-        raise Exception('Children generation method not allowed')
+        raise Exception('Crossover method not allowed')
 
   def _validate_crossover_methods(
     self,
@@ -826,7 +834,36 @@ class Population():
       case 'uniform':
         return
       case _:
-        raise Exception('Children generation method not allowed')
+        raise Exception('Crossover method not allowed')
+
+  def _do_mutation_using_a_method(
+    self,
+    mutation_method: MutationMethods,
+    binary_or_gray: str
+  ):
+    match mutation_method:
+      case 'one_point':
+        return mutate_n_bits_from_binary_or_gray(binary_or_gray)
+      case 'two_points':
+        return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
+      case 'flipping':
+        return mutation_binary_or_gray_by_flipping(binary_or_gray)
+      case _:
+        raise Exception('Mutation method not allowed')
+
+  def _validate_mutation_methods(
+    self,
+    mutation_method: MutationMethods
+  ):
+    match mutation_method:
+      case 'one_point':
+        return
+      case 'two_points':
+        return
+      case 'flipping':
+        return
+      case _:
+        raise Exception('Mutation method not allowed')
 
   def canonical_algorithm(
     self,
@@ -836,7 +873,8 @@ class Population():
     SEED = 1.5,
     PRINT = False,
     PARENT_SELECTION_METHOD: ParentSelectionMethods = 'fitness_proportionate',
-    CROSSOVER_METHOD: CrossoverMethods = 'one_point'
+    CROSSOVER_METHOD: CrossoverMethods = 'one_point',
+    MUTATION_METHOD: MutationMethods = 'one_point'
   ) -> Tuple[List[float], Dict[str, str], exp]:
     """
     Canonical algorithm that follows the following steps:
@@ -863,6 +901,8 @@ class Population():
       select the parents. Defaults to 'fitness_proportionate'.
       CHILDREN_GENERATION_METHOD (CrossoverMethods, optional): a method to
       crossover. Defaults to 'one_point'.
+      MUTATION_METHOD (MutationMethods, optional): a method to mutate. Default
+      to 'one_point'.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
@@ -875,6 +915,8 @@ class Population():
     """
     self._validate_parents_selection_methods(PARENT_SELECTION_METHOD)
     self._validate_crossover_methods(CROSSOVER_METHOD)
+    self._validate_mutation_methods(MUTATION_METHOD)
+
     self._select_initial_population(SAMPLE_SIZE)
     self._fitness(self._current_population, MINIMIZE)
     self._current_population.sort(
