@@ -57,6 +57,15 @@ class Individual():
   def get_numbers(self) -> str:
     return self._numbers
 
+  def get_fitness(self):
+    numbers = loads(self._numbers)
+    f = self._function.copy()
+
+    for i, n in enumerate(numbers):
+      f = f.subs(self._variables_array[i], n)
+
+    return f
+
   def _str_bits(self, bits: List[int]) -> str:
     result = '['
 
@@ -68,15 +77,6 @@ class Individual():
 
     return result
 
-  def _evaluate_function(self):
-    numbers = loads(self._numbers)
-    f = self._function.copy()
-
-    for i, n in enumerate(numbers):
-      f = f.subs(self._variables_array[i], n)
-
-    return f
-
   def __str__(self) -> str:
     return f'{{ \
 "binary": "{self._binary}", \
@@ -84,7 +84,7 @@ class Individual():
 "numbers": "{self._numbers}", \
 "bits": "{self._str_bits(self._bits)}", \
 "score": "{self._score}", \
-"fitness": "{self._evaluate_function()}" \
+"fitness": "{self.get_fitness()}" \
 }}'
 
   def __repr__(self) -> str:
@@ -1058,6 +1058,18 @@ class Population():
     self._best_individual = self._current_population[0]
     current_iteration = 1
     scores: List[float] = []
+    fitness_avg_list: List[float] = [
+      np.mean(
+        np.array(
+          list(
+            map(
+              lambda individual: individual.get_fitness(),
+              self._current_population
+            )
+          ) # type: ignore
+        )
+      )
+    ]
 
     if PRINT:
       print(
@@ -1075,6 +1087,18 @@ class Population():
       )
       self._select(children, MINIMIZE, SAMPLE_SIZE)
       scores.append(self._best_individual.get_score())
+      fitness_avg_list.append(
+        np.mean(
+          np.array(
+            list(
+              map(
+                lambda individual: individual.get_fitness(),
+                self._current_population
+              )
+            ) # type: ignore
+          )
+        )
+      )
 
       if self._selection_strength <= 1e-4:
         break
@@ -1135,5 +1159,6 @@ class Population():
       print('Solution:')
       print(f'  Variables: {solution}')
       print(f'  Evaluation: {function}')
+      print(f'  Fitness average: {fitness_avg_list}')
 
     return scores, solution, function
