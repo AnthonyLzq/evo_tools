@@ -10,8 +10,8 @@ from typing import Dict, List, Tuple, Union, Literal
 from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping
 from evo_tools.helpers import sub_strings_by_array
 
-ParentSelectionMethods = Literal['fitness_proportionate', 'roulette']
-CrossoverMethods = Literal['one_point', 'uniform']
+ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
+CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
 MutationMethods = Literal['one_point', 'two_points', 'flipping']
 
 class Individual():
@@ -546,6 +546,28 @@ class Population():
 
     return parents
 
+  def _parents_selection_by_tournament(
+    self,
+    seed: float,
+    K: int
+  ):
+    parents: List[Tuple[Individual, Individual]] = []
+
+    while len(parents) < seed:
+      chosen_list: List[Individual] = []
+
+      for _ in range(2):
+        candidates = sample(self._current_population, K)
+        chosen = min(
+          candidates,
+          key = lambda individual: abs(individual.get_fitness())
+        )
+        chosen_list.append(chosen)
+
+      parents.append(tuple(chosen_list))
+
+    return parents
+
   def _crossover_one_point(
     self,
     seed: float,
@@ -614,6 +636,98 @@ class Population():
 
             if len(points) == 0:
               break
+
+          attempts += 1
+
+        if are_first_binaries_valid:
+          children.append(
+            Individual(
+              binary_children[0],
+              gray_children[0],
+              0,
+              bits,
+              self._get_fen(binary_children[0], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
+          )
+
+        if are_second_binaries_valid:
+          children.append(
+            Individual(
+              binary_children[1],
+              gray_children[1],
+              0,
+              bits,
+              self._get_fen(binary_children[1], bits), # type: ignore
+              sympify(str(self._function)),
+              self._variables.split()
+            )
+          )
+
+    return children
+
+  def _crossover_two_points(
+    self,
+    seed: float,
+    parent_selection_method: ParentSelectionMethods
+  ) -> List[Individual]:
+    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
+
+    if len(parents) == 0:
+      return []
+
+    total_bits = parents[0][0].get_total_bits()
+    bits = parents[0][0].get_bits()
+    children: List[Individual] = []
+
+    for p_parent in parents:
+      if random() < self._crossover_rate:
+        points = [i for i in range(0, total_bits)]
+        p1, p2 = p_parent
+        binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
+        gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
+        binary_children: List[str] = []
+        gray_children: List[str] = []
+        attempts = 0
+        are_first_binaries_valid = False
+        are_second_binaries_valid = False
+
+        while True:
+          p1, p2 = sample(points, 2)
+          p_max, p_min = p1, p2
+
+          if p_max < p2:
+            p_max = p2
+
+          if p_min > p1:
+            p_min = p1
+
+          binary_children = [
+            binary_p1[:p_min] + binary_p2[p_min:p_max] + binary_p1[p_max:],
+            binary_p2[:p_min] + binary_p1[p_min:p_max] + binary_p2[p_max:]
+          ]
+          gray_children = [
+            gray_p1[:p_min] + gray_p2[p_min:p_max] + gray_p1[p_max:],
+            gray_p2[:p_min] + gray_p1[p_min:p_max] + gray_p2[p_max:]
+          ]
+          first_binaries_to_validate = [
+            sub_strings_by_array(binary_children[0], bits),
+            sub_strings_by_array(gray_children[0], bits),
+          ]
+          second_binaries_to_validate = [
+            sub_strings_by_array(binary_children[1], bits),
+            sub_strings_by_array(gray_children[1], bits)
+          ]
+          are_first_binaries_valid = self._validate_binaries_in_range(
+            first_binaries_to_validate
+          )
+          are_second_binaries_valid = self._validate_binaries_in_range(
+            second_binaries_to_validate
+          )
+
+          if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
+            break
 
           attempts += 1
 
@@ -888,6 +1002,8 @@ class Population():
         return self._parents_selection_by_fitness_proportionate(seed)
       case 'roulette':
         return self._parents_selection_by_roulette(seed)
+      case 'tournament':
+        return self._parents_selection_by_tournament(seed, K = 10)
       case _:
         raise Exception('Parent selection method not allowed')
 
@@ -899,6 +1015,8 @@ class Population():
       case 'fitness_proportionate':
         return
       case 'roulette':
+        return
+      case 'tournament':
         return
       case _:
         raise Exception('Method not allowed')
@@ -912,6 +1030,8 @@ class Population():
     match crossover_method:
       case 'one_point':
         return self._crossover_one_point(seed, parent_selection_method)
+      case 'two_points':
+        return self._crossover_two_points(seed, parent_selection_method)
       case 'uniform':
         return self._crossover_uniform(seed, parent_selection_method)
       case _:
@@ -925,6 +1045,8 @@ class Population():
       case 'one_point':
         return
       case 'uniform':
+        return
+      case 'two_points':
         return
       case _:
         raise Exception('Crossover method not allowed')
