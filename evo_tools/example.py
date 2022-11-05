@@ -123,7 +123,7 @@ def canonical_algorithm(
   print('\n#############################################')
 
   start = time.time()
-  scores, solution, result = population.canonical_algorithm(
+  scores, solution, result, fitness_avg = population.canonical_algorithm(
     sample_size,
     iterations,
     minimize,
@@ -136,12 +136,12 @@ def canonical_algorithm(
   end = time.time()
 
   print()
-  print('scores       :', scores)
-  print('solution     :', solution)
-  print('result       :', result)
-  print(f'time elapsed : {end - start}s')
+  print('scores      :', scores)
+  print('solution    :', solution)
+  print('result      :', result)
+  print(f'time elapsed: {end - start}s')
 
-  return result
+  return scores, solution, result, fitness_avg
 
 # if __name__ == '__main__':
 #   canonical_algorithm()
