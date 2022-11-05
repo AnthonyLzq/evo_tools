@@ -52,16 +52,15 @@ def test_canonical_algorithm_polygonal(a, b) -> None:
 )
 @skip('')
 def test_canonical_algorithm_sine_and_exponential_1(a, b) -> None:
-  result = abs(
-    example.canonical_algorithm(
-      mutation_rate = 0.01,
-      _print = True,
-      sample_size = 80,
-      parent_selection_method = 'roulette',
-      crossover_method = 'uniform',
-      mutation_method = 'flipping'
-    )
+  _, __, result, ___ = example.canonical_algorithm(
+    mutation_rate = 0.01,
+    _print = True,
+    sample_size = 80,
+    parent_selection_method = 'roulette',
+    crossover_method = 'uniform',
+    mutation_method = 'flipping'
   )
+  result = abs(result)
   assert round(result, 2) <= 1  # type: ignore
 
 @patch(
@@ -73,14 +72,13 @@ def test_canonical_algorithm_sine_and_exponential_1(a, b) -> None:
   return_value = (0.01, [(-14, 0), (-7, 0)])
 )
 def test_canonical_algorithm_sine_and_exponential_2(a, b) -> None:
-  result = abs(
-    example.canonical_algorithm(
-      mutation_rate = 0.01,
-      _print = True,
-      sample_size = 80,
-      parent_selection_method = 'tournament',
-      crossover_method = 'two_points',
-      mutation_method = 'two_points'
-    )
+  _, __, result, ___ = example.canonical_algorithm(
+    mutation_rate = 0.01,
+    _print = True,
+    sample_size = 80,
+    parent_selection_method = 'roulette',
+    crossover_method = 'uniform',
+    mutation_method = 'flipping'
   )
+  result = abs(result)
   assert round(result, 2) <= 1  # type: ignore

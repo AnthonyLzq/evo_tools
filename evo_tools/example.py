@@ -2,7 +2,7 @@ import time
 from typing import Tuple
 from sympy import sympify
 
-from evo_tools.population import Population, ParentSelectionMethods, CrossoverMethods, MutationMethods
+from evo_tools.population import Population #, ParentSelectionMethods, CrossoverMethods, MutationMethods
 
 def generate_variables_and_equation() -> Tuple[str, str]:
   while True:
@@ -98,9 +98,9 @@ def canonical_algorithm(
   minimize = True,
   seed = 1.5,
   _print = False,
-  parent_selection_method: ParentSelectionMethods = 'fitness_proportionate',
-  crossover_method: CrossoverMethods = 'one_point',
-  mutation_method: MutationMethods = 'one_point'
+  parent_selection_method = 'fitness_proportionate',
+  crossover_method = 'one_point',
+  mutation_method = 'one_point'
 ):
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)

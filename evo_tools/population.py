@@ -10,9 +10,9 @@ from typing import Dict, List, Tuple, Union, Literal
 from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping
 from evo_tools.helpers import sub_strings_by_array
 
-ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
-CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
-MutationMethods = Literal['one_point', 'two_points', 'flipping']
+# ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
+# CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
+# MutationMethods = Literal['one_point', 'two_points', 'flipping']
 
 class Individual():
   """
@@ -571,7 +571,7 @@ class Population():
   def _crossover_one_point(
     self,
     seed: float,
-    parent_selection_method: ParentSelectionMethods
+    parent_selection_method
   ) -> List[Individual]:
     """
     Method that creates n children from 2 * n parents combining their genotype
@@ -670,7 +670,7 @@ class Population():
   def _crossover_two_points(
     self,
     seed: float,
-    parent_selection_method: ParentSelectionMethods
+    parent_selection_method
   ) -> List[Individual]:
     parents = self._generate_parents_using_a_method(seed, parent_selection_method)
 
@@ -762,7 +762,7 @@ class Population():
   def _crossover_uniform(
     self,
     seed: float,
-    parent_selection_method: ParentSelectionMethods
+    parent_selection_method
   ):
     parents = self._generate_parents_using_a_method(seed, parent_selection_method)
 
@@ -842,7 +842,7 @@ class Population():
   def _mutation(
     self,
     children: List[Individual],
-    mutation_method: MutationMethods = 'one_point'
+    mutation_method = 'one_point'
   ) -> List[Individual]:
     """
     Method that changes 1 bit from a children based on the mutation probability.
@@ -995,7 +995,7 @@ class Population():
   def _generate_parents_using_a_method(
     self,
     seed: float,
-    parent_selection_method: ParentSelectionMethods
+    parent_selection_method
   ):
     match parent_selection_method:
       case 'fitness_proportionate':
@@ -1009,7 +1009,7 @@ class Population():
 
   def _validate_parents_selection_methods(
     self,
-    parent_selection_method: ParentSelectionMethods
+    parent_selection_method
   ):
     match parent_selection_method:
       case 'fitness_proportionate':
@@ -1024,8 +1024,8 @@ class Population():
   def _do_crossover_using_a_method(
     self,
     seed: float,
-    crossover_method: CrossoverMethods,
-    parent_selection_method: ParentSelectionMethods
+    crossover_method,
+    parent_selection_method
   ):
     match crossover_method:
       case 'one_point':
@@ -1039,7 +1039,7 @@ class Population():
 
   def _validate_crossover_methods(
     self,
-    crossover_method: CrossoverMethods
+    crossover_method
   ):
     match crossover_method:
       case 'one_point':
@@ -1053,7 +1053,7 @@ class Population():
 
   def _do_mutation_using_a_method(
     self,
-    mutation_method: MutationMethods,
+    mutation_method,
     binary_or_gray: str
   ):
     match mutation_method:
@@ -1068,7 +1068,7 @@ class Population():
 
   def _validate_mutation_methods(
     self,
-    mutation_method: MutationMethods
+    mutation_method
   ):
     match mutation_method:
       case 'one_point':
@@ -1126,9 +1126,9 @@ class Population():
     MINIMIZE = True,
     SEED = 1.5,
     PRINT = False,
-    PARENT_SELECTION_METHOD: ParentSelectionMethods = 'fitness_proportionate',
-    CROSSOVER_METHOD: CrossoverMethods = 'one_point',
-    MUTATION_METHOD: MutationMethods = 'one_point'
+    PARENT_SELECTION_METHOD = 'fitness_proportionate',
+    CROSSOVER_METHOD = 'one_point',
+    MUTATION_METHOD = 'one_point'
   ) -> Tuple[List[float], Dict[str, str], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
