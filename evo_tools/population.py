@@ -377,9 +377,10 @@ class Population():
     self,
     individuals: List[Individual],
     minimize: bool,
-    sample_size: int
+    sample_size: int,
+    mutation_method: str
   ) -> None:
-    mutated_individuals = self._mutation(individuals)
+    mutated_individuals = self._mutation(individuals, mutation_method)
     self._fitness(mutated_individuals, minimize)
     mutated_individuals.sort(reverse = minimize, key = lambda x: x.get_score())
 
@@ -549,7 +550,8 @@ class Population():
   def _parents_selection_by_tournament(
     self,
     seed: float,
-    K: int
+    K: int,
+    minimize: bool
   ):
     parents: List[Tuple[Individual, Individual]] = []
 
@@ -559,6 +561,9 @@ class Population():
       for _ in range(2):
         candidates = sample(self._current_population, K)
         chosen = min(
+          candidates,
+          key = lambda individual: abs(individual.get_fitness())
+        ) if minimize else max(
           candidates,
           key = lambda individual: abs(individual.get_fitness())
         )
@@ -571,7 +576,8 @@ class Population():
   def _crossover_one_point(
     self,
     seed: float,
-    parent_selection_method
+    parent_selection_method,
+    minimize: bool
   ) -> List[Individual]:
     """
     Method that creates n children from 2 * n parents combining their genotype
@@ -583,7 +589,11 @@ class Population():
     Returns:
       List[Individual]: n children
     """
-    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
+    parents = self._generate_parents_using_a_method(
+      seed,
+      parent_selection_method,
+      minimize
+    )
 
     if len(parents) == 0:
       return []
@@ -670,9 +680,14 @@ class Population():
   def _crossover_two_points(
     self,
     seed: float,
-    parent_selection_method
+    parent_selection_method,
+    minimize: bool
   ) -> List[Individual]:
-    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
+    parents = self._generate_parents_using_a_method(
+      seed,
+      parent_selection_method,
+      minimize
+    )
 
     if len(parents) == 0:
       return []
@@ -762,9 +777,14 @@ class Population():
   def _crossover_uniform(
     self,
     seed: float,
-    parent_selection_method
+    parent_selection_method,
+    minimize: bool
   ):
-    parents = self._generate_parents_using_a_method(seed, parent_selection_method)
+    parents = self._generate_parents_using_a_method(
+      seed,
+      parent_selection_method,
+      minimize
+    )
 
     if len(parents) == 0:
       return []
@@ -844,12 +864,6 @@ class Population():
     children: List[Individual],
     mutation_method = 'one_point'
   ) -> List[Individual]:
-    """
-    Method that changes 1 bit from a children based on the mutation probability.
-
-    Args:
-      children (List[Individual]): children mutated
-    """
     if self._print:
       print(f'\nPopulation children before mutation: {children}\n')
       print()
@@ -979,106 +993,89 @@ class Population():
     if len(final_function_evaluations) == 0:
       return
 
-    if minimize:
-      maxi = max([abs(e) for e in final_function_evaluations])
+    maxi = max([abs(e) for e in final_function_evaluations])
 
-      for i, e in enumerate(final_function_evaluations):
-        score = 1e-3 + maxi - abs(e)
-        population_sample[i].set_score(score)
-    else:
-      mini = min([abs(e) for e in final_function_evaluations])
-
-      for i, e in enumerate(final_function_evaluations):
-        score = 1e-3 + abs(e) - mini
-        population_sample[i].set_score(score)
+    for i, e in enumerate(final_function_evaluations):
+      score = 1e-3 + maxi - abs(e)
+      population_sample[i].set_score(score)
 
   def _generate_parents_using_a_method(
     self,
     seed: float,
-    parent_selection_method
+    parent_selection_method,
+    minimize: bool
   ):
-    match parent_selection_method:
-      case 'fitness_proportionate':
-        return self._parents_selection_by_fitness_proportionate(seed)
-      case 'roulette':
-        return self._parents_selection_by_roulette(seed)
-      case 'tournament':
-        return self._parents_selection_by_tournament(seed, K = 10)
-      case _:
-        raise Exception('Parent selection method not allowed')
+    if parent_selection_method == 'fitness_proportionate':
+      return self._parents_selection_by_fitness_proportionate(seed)
+
+    if parent_selection_method == 'roulette':
+      return self._parents_selection_by_roulette(seed)
+
+    if parent_selection_method == 'tournament':
+      return self._parents_selection_by_tournament(seed, 10, minimize)
+
+    raise Exception('Parent selection method not allowed')
 
   def _validate_parents_selection_methods(
     self,
     parent_selection_method
   ):
-    match parent_selection_method:
-      case 'fitness_proportionate':
-        return
-      case 'roulette':
-        return
-      case 'tournament':
-        return
-      case _:
-        raise Exception('Method not allowed')
+    if parent_selection_method in ['fitness_proportionate', 'roulette', 'tournament']:
+      return
+
+    raise Exception('Method not allowed')
 
   def _do_crossover_using_a_method(
     self,
     seed: float,
     crossover_method,
-    parent_selection_method
+    parent_selection_method,
+    minimize: bool
   ):
-    match crossover_method:
-      case 'one_point':
-        return self._crossover_one_point(seed, parent_selection_method)
-      case 'two_points':
-        return self._crossover_two_points(seed, parent_selection_method)
-      case 'uniform':
-        return self._crossover_uniform(seed, parent_selection_method)
-      case _:
-        raise Exception('Crossover method not allowed')
+    if crossover_method == 'one_point':
+      return self._crossover_one_point(seed, parent_selection_method, minimize)
+
+    if crossover_method == 'two_points':
+      return self._crossover_two_points(seed, parent_selection_method, minimize)
+
+    if crossover_method ==  'uniform':
+      return self._crossover_uniform(seed, parent_selection_method, minimize)
+
+    raise Exception('Crossover method not allowed')
 
   def _validate_crossover_methods(
     self,
     crossover_method
   ):
-    match crossover_method:
-      case 'one_point':
-        return
-      case 'uniform':
-        return
-      case 'two_points':
-        return
-      case _:
-        raise Exception('Crossover method not allowed')
+    if crossover_method in ['one_point', 'uniform', 'two_points']:
+      return
+
+    raise Exception('Crossover method not allowed')
 
   def _do_mutation_using_a_method(
     self,
     mutation_method,
     binary_or_gray: str
   ):
-    match mutation_method:
-      case 'one_point':
-        return mutate_n_bits_from_binary_or_gray(binary_or_gray)
-      case 'two_points':
-        return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
-      case 'flipping':
+    if mutation_method == 'one_point':
+      return mutate_n_bits_from_binary_or_gray(binary_or_gray)
+
+    if mutation_method == 'two_points':
+      return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
+
+    if mutation_method ==  'flipping':
         return mutation_binary_or_gray_by_flipping(binary_or_gray)
-      case _:
-        raise Exception('Mutation method not allowed')
+
+    raise Exception('Mutation method not allowed')
 
   def _validate_mutation_methods(
     self,
     mutation_method
   ):
-    match mutation_method:
-      case 'one_point':
-        return
-      case 'two_points':
-        return
-      case 'flipping':
-        return
-      case _:
-        raise Exception('Mutation method not allowed')
+    if mutation_method in ['one_point', 'two_points', 'flipping']:
+      return
+
+    raise Exception('Mutation method not allowed')
 
   def _get_fen(self, binary_or_gray: str, bits: List[int]):
     binaries = sub_strings_by_array(
@@ -1124,7 +1121,7 @@ class Population():
     SAMPLE_SIZE: int,
     ITERATIONS = 100,
     MINIMIZE = True,
-    SEED = 1.5,
+    SEED = 1.1,
     PRINT = False,
     PARENT_SELECTION_METHOD = 'fitness_proportionate',
     CROSSOVER_METHOD = 'one_point',
@@ -1196,19 +1193,20 @@ class Population():
 
     if PRINT:
       print(
-        f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
+        f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
       )
       df = pd.DataFrame(loads(str(self._current_population)))
-      print(df)
+      print(df, end = '\n\n')
 
     for i in range(ITERATIONS - 1):
       current_iteration += 1
       children = self._do_crossover_using_a_method(
         SAMPLE_SIZE * SEED,
         CROSSOVER_METHOD,
-        PARENT_SELECTION_METHOD
+        PARENT_SELECTION_METHOD,
+        MINIMIZE
       )
-      self._select(children, MINIMIZE, SAMPLE_SIZE)
+      self._select(children, MINIMIZE, SAMPLE_SIZE, MUTATION_METHOD)
       scores.append(self._best_individual.get_score())
       fitness_avg_list.append(
         np.mean(
@@ -1231,14 +1229,14 @@ class Population():
 
       if PRINT:
         print(
-          f'{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
+          f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
         )
         df = pd.DataFrame(loads(str(self._current_population)))
-        print(df)
+        print(df, end = '\n\n')
 
     if PRINT:
       print(
-        f'\n\nFinally:\n{current_iteration}º iteration, best individual: {self._best_individual}, selection strength: {self._selection_strength}.'
+        f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}\n.Selection strength: {self._selection_strength}.'
       )
 
     binaries = sub_strings_by_array(

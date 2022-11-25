@@ -117,7 +117,7 @@ def canonical_algorithm(
 
   print('\n#############################################')
   print('Running the canonical algorithm for: \n')
-  print(f'Function: {equation} = 0')
+  print(f'Function: {equation}')
   print(f'Precision: {precision}')
   print(f'Ranges: {ranges}')
   print('\n#############################################')
@@ -142,6 +142,3 @@ def canonical_algorithm(
   print(f'time elapsed: {end - start}s')
 
   return scores, solution, result, fitness_avg
-
-# if __name__ == '__main__':
-#   canonical_algorithm()

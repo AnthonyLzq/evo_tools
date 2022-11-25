@@ -230,8 +230,6 @@ def float_to_binary_and_gray(
   """
   x0, xf = rng
 
-  #00001 - 01000
-  #10001
   if n < x0 or n > xf:
     raise Exception(f'Bad input: {n} is out of bounds: {rng}.')
 
