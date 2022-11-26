@@ -5,9 +5,14 @@ from random import choice, sample, random
 from math import log
 from functools import reduce
 from sympy import exp, sympify
-from typing import Dict, List, Tuple, Union, Literal
+from typing import Dict, List, Tuple, Union
+from time import time
 
-from evo_tools.bin_gray import NumberBinaryGrayRepresentation, binary_to_float, binary_to_gray, format_to_n_bits, mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping
+from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits, \
+  mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, \
+  generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping,\
+  get_float_from_custom_representation, get_binary_from_custom_representation, \
+  get_gray_from_custom_representation
 from evo_tools.helpers import sub_strings_by_array
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -109,7 +114,7 @@ class SubPopulation():
   rng: Tuple[Union[float, int], Union[float, int]]
     The range specified for this SubPopulation, for this case (1, 2)
 
-  numbers: List[NumberBinaryGrayRepresentation]
+  numbers: List[str]
 
   bits: int
     Number of bits used for represent the float value.
@@ -117,7 +122,7 @@ class SubPopulation():
   def __init__(
     self,
     rng: Tuple[Union[float, int], Union[float, int]],
-    numbers: List[NumberBinaryGrayRepresentation],
+    numbers: List[str],
     bits: int,
   ) -> None:
     self.rng = rng
@@ -256,22 +261,6 @@ class Population():
     if (len(variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
-  def print(self):
-    """
-    Prints the current Population data. The current sample and the data from each
-    SubPopulation.
-    """
-    print('\nCurrent population sample:\n')
-    print(self._current_population)
-    print()
-    print('\nData from population members:')
-
-    for i, sub_population in enumerate(self._sub_populations):
-      print(f'  {i + 1}. Range:', sub_population.rng)
-      print(f'  {i + 1}. Bits:', sub_population.bits)
-      print(f'  {i + 1}. Numbers:', sub_population.numbers)
-      print()
-
   def _select_initial_population(self, sample_size: int) -> List[Individual]:
     """
     Method that selects the initial sample (randomly) of the Population.
@@ -302,7 +291,7 @@ class Population():
 
       return self._initial_population.copy()
     else:
-      samples: List[Tuple[List[NumberBinaryGrayRepresentation], int]] = []
+      samples: List[Tuple[List[str], int]] = []
 
       for sub_population in self._sub_populations:
         samples.append((
@@ -321,13 +310,13 @@ class Population():
         for j, s in enumerate(samples):
           current_sample, current_bits = s
           bits.append(current_bits)
-          binary += current_sample[i].get_binary()
-          gray += current_sample[i].get_gray()
+          binary += get_binary_from_custom_representation(current_sample[i])
+          gray += get_gray_from_custom_representation(current_sample[i])
 
           if j != len(samples) - 1:
-            numbers += f'{current_sample[i].get_number()}, '
+            numbers += f'{get_float_from_custom_representation(current_sample[i])}, '
           else:
-            numbers += f'{current_sample[i].get_number()}]'
+            numbers += f'{get_float_from_custom_representation(current_sample[i])}]'
 
         self._initial_population.append(
           Individual(
@@ -381,7 +370,7 @@ class Population():
     mutation_method: str
   ) -> None:
     mutated_individuals = self._mutation(individuals, mutation_method)
-    self._fitness(mutated_individuals, minimize)
+    self._fitness(mutated_individuals)
     mutated_individuals.sort(reverse = minimize, key = lambda x: x.get_score())
 
     # Calculate the mean and std of the population before the selection
@@ -422,11 +411,15 @@ class Population():
     for binary in binaries:
       for i, gen in enumerate(binary):
         try:
-          _range = self._sub_populations[i].rng
-          fen = binary_to_float(gen, _range, self._precision)
-          x0, xf = _range
+          fen = binary_to_float(
+            gen,
+            self._sub_populations[i].numbers,
+            self._sub_populations[i].rng,
+            self._precision
+          )
+          x0, xf = self._sub_populations[i].rng
 
-          if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
+          if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
             return False
         except:
           return False
@@ -642,7 +635,7 @@ class Population():
           if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
             break
           else:
-            points = list(filter(lambda number: number != point, points))
+            points = [p for p in points if p != point]
 
             if len(points) == 0:
               break
@@ -924,7 +917,7 @@ class Population():
 
     return mutated_children
 
-  def _fitness(self, population_sample: List[Individual], minimize = True) -> None:
+  def _fitness(self, population_sample: List[Individual]) -> None:
     """
     Method that calculates the genotype fitness of a given function for the
     current population.
@@ -949,11 +942,16 @@ class Population():
       fens: List[float] = []
 
       for i, gen in enumerate(gens):
-        _range = self._sub_populations[i].rng
-
         try:
           fen = float(
-            binary_to_float(gen, _range, self._precision).get_number()
+            get_float_from_custom_representation(
+              binary_to_float(
+                gen,
+                self._sub_populations[i].numbers,
+                self._sub_populations[i].rng,
+                self._precision
+              )
+            )
           )
           fens.append(fen)
         except:
@@ -970,7 +968,7 @@ class Population():
         for i, v in enumerate(variables_array):
           function = function.subs(v, fens[i])  # type: ignore
 
-        function_evaluations.append(function)
+        function_evaluations.append(function)  # type: ignore
 
         if self._print:
           print(f'  fitness: {function}\n')
@@ -993,10 +991,10 @@ class Population():
     if len(final_function_evaluations) == 0:
       return
 
-    maxi = max([abs(e) for e in final_function_evaluations])
+    maxi = max([e for e in final_function_evaluations])
 
     for i, e in enumerate(final_function_evaluations):
-      score = 1e-3 + maxi - abs(e)
+      score = 1e-3 + maxi - e
       population_sample[i].set_score(score)
 
   def _generate_parents_using_a_method(
@@ -1082,29 +1080,22 @@ class Population():
       binary_or_gray,
       bits
     )
-    ranges: List[Tuple[float | int, float | int]] = []
+    numbers = '['
 
     for i, binary in enumerate(binaries):
       try:
-        _range = self._sub_populations[i].rng
-        fen = binary_to_float(binary, _range, self._precision)
-        x0, xf = _range
+        fen = binary_to_float(
+          binary,
+          self._sub_populations[i].numbers,
+          self._sub_populations[i].rng,
+          self._precision
+        )
+        x0, xf = self._sub_populations[i].rng
 
-        if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
+        if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
           pass
         else:
-          ranges.append(_range)
-      except:
-        pass
-
-    numbers = '['
-
-    for i, rng in enumerate(ranges):
-      binary = binaries[i]
-
-      try:
-        fen = binary_to_float(binary, rng, self._precision).get_number()
-        numbers += f'{fen}, '
+          numbers += f'{fen}, '
       except:
         pass
 
@@ -1170,7 +1161,8 @@ class Population():
     self._validate_mutation_methods(MUTATION_METHOD)
 
     self._select_initial_population(SAMPLE_SIZE)
-    self._fitness(self._current_population, MINIMIZE)
+    start = time()
+    self._fitness(self._current_population)
     self._current_population.sort(
       reverse = MINIMIZE,
       key = lambda x: x.get_score()
@@ -1190,15 +1182,17 @@ class Population():
         )
       )
     ]
+    end = time()
 
     if PRINT:
       print(
-        f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
+        f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.\nTime elapsed: {end - start}s.'
       )
       df = pd.DataFrame(loads(str(self._current_population)))
       print(df, end = '\n\n')
 
     for i in range(ITERATIONS - 1):
+      start = time()
       current_iteration += 1
       children = self._do_crossover_using_a_method(
         SAMPLE_SIZE * SEED,
@@ -1220,6 +1214,7 @@ class Population():
           )
         )
       )
+      end = time()
 
       if self._selection_strength <= 1e-4:
         break
@@ -1229,7 +1224,7 @@ class Population():
 
       if PRINT:
         print(
-          f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
+          f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.\nTime elapsed: {end - start}s.'
         )
         df = pd.DataFrame(loads(str(self._current_population)))
         print(df, end = '\n\n')
@@ -1243,32 +1238,29 @@ class Population():
       self._best_individual.get_binary(),
       self._best_individual.get_bits()
     )
-    ranges: List[Tuple[float | int, float | int]] = []
+    floats: List[str] = []
 
     for i, binary in enumerate(binaries):
       try:
-        _range = self._sub_populations[i].rng
-        fen = binary_to_float(binary, _range, self._precision)
-        x0, xf = _range
+        fen = binary_to_float(
+          binary,
+          self._sub_populations[i].numbers,
+          self._sub_populations[i].rng,
+          self._precision
+        )
+        x0, xf = self._sub_populations[i].rng
 
-        if float(fen.get_number()) < x0 or float(fen.get_number()) > xf:
+        if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
           pass
         else:
-          ranges.append(_range)
+          floats.append(get_float_from_custom_representation(fen))
       except:
         pass
 
-    if len(ranges) == 0:
+    if len(floats) == 0:
       raise Exception('Something went wrong')
 
     variables_array = self._variables.split()
-    floats: List[str] = []
-
-    for i, rng in enumerate(ranges):
-      binary = binaries[i]
-      fen = binary_to_float(binary, rng, self._precision)
-      floats.append(fen.get_number())
-
     function = sympify(str(self._function))
     solution: Dict[str, str] = {}
 

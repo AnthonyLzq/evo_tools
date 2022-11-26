@@ -4,24 +4,6 @@ from typing import List, Tuple, Union
 
 from evo_tools.custom import custom_range
 
-class NumberBinaryGrayRepresentation():
-  def __init__(self, number: str, binary: str, gray: str) -> None:
-    self._number = number
-    self._binary = binary
-    self._gray = gray
-
-  def get_number(self) -> str:
-    return self._number
-
-  def get_binary(self) -> str:
-    return self._binary
-
-  def get_gray(self) -> str:
-    return self._gray
-
-  def __str__(self) -> str:
-    return f'{{ "number": {self._number}, "binary": {self._binary}, "gray": {self._gray} }}'
-
 def binary_to_int(b: str) -> int:
   """
   Function to change binary to integer.
@@ -127,12 +109,12 @@ def number_of_bits_for_a_range(
 def range_of_numbers_binary_and_gray(
   rng: Tuple[Union[float, int], Union[float, int]],
   precision: Union[float, int]
-) -> Tuple[List[NumberBinaryGrayRepresentation], int]:
+) -> Tuple[List[str], int]:
   """
-  Function to create a list of :class:`NumberBinaryGrayRepresentation`. For example, given
-  a range [-1, 1] and a precision of 0.1, this functions will create an array
-  of NumberBinaryGrayRepresentation, which is a object that has a number (float representation),
-  binary and gray attributes in strings.
+  Function to create a list of str which contains the three representation of
+  every number ; separated. For example, given a range [-1, 1] and a precision
+  of 0.1, these function will return something like:
+  ['float;binary;gray']
 
   Args:
     rng (Tuple[Union[float, int], Union[float, int]]):
@@ -145,7 +127,7 @@ def range_of_numbers_binary_and_gray(
     Exception: when the given precision is neither 1 nor a decimal fraction.
 
   Returns:
-    Tuple[List[NumberBinaryGrayRepresentation], int]:
+    Tuple[List[str], int]:
       In the first position contains the given range with the three possible
       representations (float, binary and gray).
 
@@ -167,7 +149,7 @@ def range_of_numbers_binary_and_gray(
 
   n_decimal_digits = int(round(log(p10, 10)))
   bits = number_of_bits_for_a_range(rng, precision, False)
-  numbers: List[NumberBinaryGrayRepresentation] = []
+  numbers: List[str] = []
 
   for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
     number = int(p10 * i)
@@ -181,78 +163,17 @@ def range_of_numbers_binary_and_gray(
 
     if index <= xf:
       numbers.append(
-        NumberBinaryGrayRepresentation(
-          format(
-            index,
-            f'.{n_decimal_digits}f'
-          ) if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1),
-          format_to_n_bits(int_to_binary(number), bits),
-          format_to_n_bits(int_to_gray(number), bits)
-        )
+        f"{format(index, f'.{n_decimal_digits}f') if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1)};{format_to_n_bits(int_to_binary(number), bits)};{format_to_n_bits(int_to_gray(number), bits)}"
       )
 
   return numbers, bits
 
-def float_to_binary_and_gray(
-  n: float,
-  rng: Tuple[Union[float, int], Union[float, int]],
-  precision: float
-) -> Tuple[NumberBinaryGrayRepresentation, int, List[NumberBinaryGrayRepresentation]]:
-  """
-  Function to change a float to its binary and gray representation in a given
-  range with a given precision.
-
-  Args:
-    n (float):
-      Float to be changed to binary and gray.
-
-    rng (Tuple[Union[float, int], Union[float, int]]):
-      Interval where n presumably belongs.
-
-    precision (float):
-      Decimal fraction in case of floats, 1 if only integers are need it.
-
-  Raises:
-    Exception:
-      When the given precision is neither 1 nor a decimal fraction or when the
-      float does not belong to the given range.
-
-  Returns:
-    Tuple[NumberBinaryGrayRepresentation, int, List[NumberBinaryGrayRepresentation]]:
-      In the first position a object that has a number (float representation),
-      binary and gray attributes in strings.
-
-      In the second position the number of bits that are used to represent
-      the given float or integer numbers in binary.
-
-      In the third position the given range with the three possible
-      representations (float, binary and gray).
-  """
-  x0, xf = rng
-
-  if n < x0 or n > xf:
-    raise Exception(f'Bad input: {n} is out of bounds: {rng}.')
-
-  if precision <= 0 or precision > 1:
-    raise Exception(
-      'Precision can be only a positive decimal fraction between <0, 1]'
-    )
-
-  numbers, bits = range_of_numbers_binary_and_gray(rng, precision)
-  aux = list(filter(lambda nbg: nbg.get_number() == str(n), numbers))
-
-  if len(aux) == 0:
-    raise Exception(
-      f'Bad input: {n} is not in the discrete range: {rng} with precision: {precision}.'
-    )
-
-  return aux[0], bits, numbers
-
 def binary_to_float(
   b: str,
+  numbers: List[str],
   rng: Tuple[Union[float, int], Union[float, int]],
   precision: float
-) -> NumberBinaryGrayRepresentation:
+) -> str:
   """
   Function to change a binary to a float in a given range with a given precision.
 
@@ -270,18 +191,22 @@ def binary_to_float(
     Exception: when the binary does not belong to the given range.
 
   Returns:
-    NumberBinaryGrayRepresentation: the given range with the three possible representations
-    (float, binary and gray).
+    str: the given range with the three possible representations ; separated in
+    the following format: ['float;binary;gray'].
   """
-  numbers, _ = range_of_numbers_binary_and_gray(rng, precision)
-  aux = list(filter(lambda nbg: nbg.get_binary() == b, numbers))
+  aux = None
 
-  if len(aux) == 0:
+  for n in numbers:
+    if b == get_binary_from_custom_representation(n):
+      aux = get_float_from_custom_representation(n)
+      break
+
+  if not aux:
     raise Exception(
       f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
     )
 
-  return aux[0]
+  return aux
 
 def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """
@@ -334,3 +259,12 @@ def generate_random_binary_with_a_len(len: int) -> str:
     new_binary += str(randint(0, 1))
 
   return new_binary
+
+def get_float_from_custom_representation(number: str) -> str:
+  return number.split(';')[0]
+
+def get_binary_from_custom_representation(number: str) -> str:
+  return number.split(';')[1]
+
+def get_gray_from_custom_representation(number: str) -> str:
+  return number.split(';')[2]

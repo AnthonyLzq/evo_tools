@@ -1,4 +1,3 @@
-from evo_tools.bin_gray import NumberBinaryGrayRepresentation
 from evo_tools.bin_gray import binary_to_int
 from evo_tools.bin_gray import binary_to_gray
 from evo_tools.bin_gray import int_to_binary
@@ -6,7 +5,6 @@ from evo_tools.bin_gray import int_to_gray
 from evo_tools.bin_gray import format_to_n_bits
 from evo_tools.bin_gray import number_of_bits_for_a_range
 from evo_tools.bin_gray import range_of_numbers_binary_and_gray
-from evo_tools.bin_gray import float_to_binary_and_gray
 from evo_tools.bin_gray import binary_to_float
 from evo_tools.bin_gray import mutate_n_bits_from_binary_or_gray
 from evo_tools.bin_gray import mutation_binary_or_gray_by_flipping

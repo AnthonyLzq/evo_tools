@@ -1,4 +1,4 @@
-import time
+from time import time
 from typing import Tuple
 from sympy import sympify
 
@@ -104,7 +104,6 @@ def canonical_algorithm(
 ):
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
-
   population = Population(
     ranges,
     precision,
@@ -112,17 +111,18 @@ def canonical_algorithm(
     mutation_rate,
     variables = variables,
     function = sympify(equation),
-    _print = False
+    _print = True
   )
 
-  print('\n#############################################')
-  print('Running the canonical algorithm for: \n')
-  print(f'Function: {equation}')
-  print(f'Precision: {precision}')
-  print(f'Ranges: {ranges}')
-  print('\n#############################################')
+  if _print:
+    print('\n#############################################')
+    print('Running the canonical algorithm for: \n')
+    print(f'Function: {equation}')
+    print(f'Precision: {precision}')
+    print(f'Ranges: {ranges}')
+    print('\n#############################################')
 
-  start = time.time()
+  start = time()
   scores, solution, result, fitness_avg = population.canonical_algorithm(
     sample_size,
     iterations,
@@ -133,12 +133,13 @@ def canonical_algorithm(
     crossover_method,
     mutation_method
   )
-  end = time.time()
+  end = time()
 
-  print()
-  print('scores      :', scores)
-  print('solution    :', solution)
-  print('result      :', result)
-  print(f'time elapsed: {end - start}s')
+  if _print:
+    print()
+    print('scores      :', scores)
+    print('solution    :', solution)
+    print('result      :', result)
+    print(f'time elapsed: {end - start}s')
 
   return scores, solution, result, fitness_avg
