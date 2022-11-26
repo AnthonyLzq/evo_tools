@@ -10,9 +10,9 @@ from evo_tools import example
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.1, [(0, 10), (0, 10), (0, 10)])
 )
-@skip('')
 def test_canonical_algorithm_linear(a, b) -> None:
-  _, __, result, ___ = example.canonical_algorithm(_print = True)
+  _, __, result, ___ = example.canonical_algorithm()
+  print('result', result)
   result = abs(result)
   assert round(result, 3) >= 12.5 and round(result, 3) <= 13.5 # type: ignore
 
@@ -24,7 +24,6 @@ def test_canonical_algorithm_linear(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.1, [(0, 10), (0, 10), (0, 10)])
 )
-@skip('')
 def test_canonical_algorithm_quadratic(a, b) -> None:
   _, __, result, ___ = example.canonical_algorithm()
   result = abs(result)
@@ -38,9 +37,8 @@ def test_canonical_algorithm_quadratic(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (1, [(12, 60), (12, 60), (12, 60), (12, 60)])
 )
-@skip('')
 def test_canonical_algorithm_polygonal(a, b) -> None:
-  _, __, result, ___ = example.canonical_algorithm(_print = True)
+  _, __, result, ___ = example.canonical_algorithm()
   result = abs(result)
   assert round(result, 2) <= 0.1  # type: ignore
 
@@ -52,18 +50,17 @@ def test_canonical_algorithm_polygonal(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.01, [(-14, 0), (-7, 0)])
 )
-@skip('')
 def test_canonical_algorithm_sine_and_exponential_1(a, b) -> None:
   _, __, result, ___ = example.canonical_algorithm(
     mutation_rate = 0.01,
-    _print = True,
     sample_size = 80,
     parent_selection_method = 'roulette',
     crossover_method = 'uniform',
     mutation_method = 'flipping'
   )
+  print('result', result)
   result = abs(result)
-  assert round(result, 2) <= 1  # type: ignore
+  assert round(result, 2) >= 40 and round(result, 2) <= 43 # type: ignore
 
 @patch(
   'evo_tools.example.generate_variables_and_equation',
@@ -73,18 +70,17 @@ def test_canonical_algorithm_sine_and_exponential_1(a, b) -> None:
   'evo_tools.example.generate_precision_and_ranges',
   return_value = (0.01, [(-14, 0), (-7, 0)])
 )
-@skip('')
 def test_canonical_algorithm_sine_and_exponential_2(a, b) -> None:
   _, __, result, ___ = example.canonical_algorithm(
     mutation_rate = 0.01,
-    _print = True,
     sample_size = 80,
     parent_selection_method = 'tournament',
     crossover_method = 'two_points',
     mutation_method = 'two_points'
   )
+  print('result', result)
   result = abs(result)
-  assert round(result, 2) <= 1  # type: ignore
+  assert round(result, 2) >= 40 and round(result, 2) <= 43 # type: ignore
 
 @patch(
   'evo_tools.example.generate_variables_and_equation',

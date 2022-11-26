@@ -111,7 +111,7 @@ def canonical_algorithm(
     mutation_rate,
     variables = variables,
     function = sympify(equation),
-    _print = True
+    _print = _print
   )
 
   if _print:

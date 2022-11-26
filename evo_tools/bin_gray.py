@@ -1,6 +1,6 @@
 from random import randint
 from math import log, log2
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from evo_tools.custom import custom_range
 
@@ -142,7 +142,7 @@ def range_of_numbers_binary_and_gray(
   if precision <= 0 or precision > 1:
     raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
 
-  p10 = 1 if precision == 1 else pow(precision, -1)
+  p10 = 1 if precision == 1 else round(pow(precision, -1))
 
   if p10 != 1 and p10 % 10 != 0:
     raise Exception(f'Bad precision: {precision} should be a positive decimal fraction or 1.')
@@ -170,7 +170,7 @@ def range_of_numbers_binary_and_gray(
 
 def binary_to_float(
   b: str,
-  numbers: List[str],
+  numbers: Dict[str, str],
   rng: Tuple[Union[float, int], Union[float, int]],
   precision: float
 ) -> str:
@@ -194,19 +194,12 @@ def binary_to_float(
     str: the given range with the three possible representations ; separated in
     the following format: ['float;binary;gray'].
   """
-  aux = None
-
-  for n in numbers:
-    if b == get_binary_from_custom_representation(n):
-      aux = get_float_from_custom_representation(n)
-      break
-
-  if not aux:
+  try:
+    return get_float_from_custom_representation(numbers[b])
+  except:
     raise Exception(
       f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
     )
-
-  return aux
 
 def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """

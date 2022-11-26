@@ -128,6 +128,10 @@ class SubPopulation():
     self.rng = rng
     self.numbers = numbers
     self.bits = bits
+    self.numbers_dict: Dict[str, str] = {}
+
+    for n in self.numbers:
+      self.numbers_dict[get_binary_from_custom_representation(n)] = n
 
   def __str__(self) -> str:
     return f'{{ "rng": {self.rng}, "numbers": {self.numbers}, "bits": {self.bits} }}'
@@ -413,7 +417,7 @@ class Population():
         try:
           fen = binary_to_float(
             gen,
-            self._sub_populations[i].numbers,
+            self._sub_populations[i].numbers_dict,
             self._sub_populations[i].rng,
             self._precision
           )
@@ -929,6 +933,10 @@ class Population():
       is it a minimization or maximization problem. Defaults to True.
     """
     variables_array = self._variables.split()
+
+    if len(population_sample) == 0:
+      return
+
     bits = population_sample[0].get_bits()
     function_evaluations = []
 
@@ -947,7 +955,7 @@ class Population():
             get_float_from_custom_representation(
               binary_to_float(
                 gen,
-                self._sub_populations[i].numbers,
+                self._sub_populations[i].numbers_dict,
                 self._sub_populations[i].rng,
                 self._precision
               )
@@ -1086,7 +1094,7 @@ class Population():
       try:
         fen = binary_to_float(
           binary,
-          self._sub_populations[i].numbers,
+          self._sub_populations[i].numbers_dict,
           self._sub_populations[i].rng,
           self._precision
         )
@@ -1244,7 +1252,7 @@ class Population():
       try:
         fen = binary_to_float(
           binary,
-          self._sub_populations[i].numbers,
+          self._sub_populations[i].numbers_dict,
           self._sub_populations[i].rng,
           self._precision
         )
