@@ -12,7 +12,6 @@ from evo_tools import example
 )
 def test_canonical_algorithm_linear(a, b) -> None:
   _, __, result, ___ = example.canonical_algorithm()
-  print('result', result)
   result = abs(result)
   assert round(result, 3) >= 12.5 and round(result, 3) <= 13.5 # type: ignore
 
@@ -38,7 +37,8 @@ def test_canonical_algorithm_quadratic(a, b) -> None:
   return_value = (1, [(12, 60), (12, 60), (12, 60), (12, 60)])
 )
 def test_canonical_algorithm_polygonal(a, b) -> None:
-  _, __, result, ___ = example.canonical_algorithm()
+  _, __, result, ___ = example.canonical_algorithm(sample_size = 40)
+  print('result', result, end = ' ')
   result = abs(result)
   assert round(result, 2) <= 0.1  # type: ignore
 
@@ -58,9 +58,8 @@ def test_canonical_algorithm_sine_and_exponential_1(a, b) -> None:
     crossover_method = 'uniform',
     mutation_method = 'flipping'
   )
-  print('result', result)
-  result = abs(result)
-  assert round(result, 2) >= 40 and round(result, 2) <= 43 # type: ignore
+  print('result', result, end = ' ')
+  assert round(result, 2) <= 0 # type: ignore
 
 @patch(
   'evo_tools.example.generate_variables_and_equation',
@@ -78,9 +77,8 @@ def test_canonical_algorithm_sine_and_exponential_2(a, b) -> None:
     crossover_method = 'two_points',
     mutation_method = 'two_points'
   )
-  print('result', result)
-  result = abs(result)
-  assert round(result, 2) >= 40 and round(result, 2) <= 43 # type: ignore
+  print('result', result, end = ' ')
+  assert round(result, 2) <= 0 # type: ignore
 
 @patch(
   'evo_tools.example.generate_variables_and_equation',
@@ -88,15 +86,15 @@ def test_canonical_algorithm_sine_and_exponential_2(a, b) -> None:
 )
 @patch(
   'evo_tools.example.generate_precision_and_ranges',
-  return_value = (pow(10, -6), [(0, 31)])
+  return_value = (pow(10, -10), [(0, 31)])
 )
 def test_canonical_algorithm_quadratic_2(a, b) -> None:
   _, __, result, ___ = example.canonical_algorithm(
     mutation_rate = 0.01,
-    _print = True,
     sample_size = 80,
     parent_selection_method = 'tournament',
     minimize = False
   )
+  print('result', result, end = ' ')
   result = abs(result)
   assert round(result, 2) <= 31 * 31 and round(result, 2) >= 30 * 30  # type: ignore

@@ -92,8 +92,8 @@ def generate_precision_and_ranges(variables: str):
 
 def canonical_algorithm(
   crossover_rate = 1,
-  mutation_rate = 0.1,
-  sample_size = 45,
+  mutation_rate = 0.3,
+  sample_size = 80,
   iterations = 100,
   minimize = True,
   seed = 1.5,
@@ -111,7 +111,8 @@ def canonical_algorithm(
     mutation_rate,
     variables = variables,
     function = sympify(equation),
-    _print = _print
+    _print = False,
+    sample_size = sample_size
   )
 
   if _print:
@@ -124,7 +125,6 @@ def canonical_algorithm(
 
   start = time()
   scores, solution, result, fitness_avg = population.canonical_algorithm(
-    sample_size,
     iterations,
     minimize,
     seed,

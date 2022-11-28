@@ -194,6 +194,7 @@ class Population():
     variables: str,
     function: exp,
     _print: bool = False,
+    sample_size: int = 80
   ) -> None:
     """
     Constructor to initialize a Population
@@ -240,6 +241,7 @@ class Population():
     self._initial_population: List[Individual] = []
     self._best_individual: Individual
     self._selection_strength: float = 0
+    self._sample_size = sample_size
 
     p10 = 1 if precision == 1 else pow(precision, -1)
     self._n_decimal_digits = int(round(log(p10, 10)))
@@ -247,7 +249,8 @@ class Population():
     for rng in ranges:
       sub_population_range, bits = range_of_numbers_binary_and_gray(
         rng,
-        self._precision
+        self._precision,
+        self._sample_size
       )
       self._sub_populations.append(
         SubPopulation(rng, sub_population_range, bits)
@@ -265,7 +268,7 @@ class Population():
     if (len(variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
-  def _select_initial_population(self, sample_size: int) -> List[Individual]:
+  def _select_initial_population(self) -> List[Individual]:
     """
     Method that selects the initial sample (randomly) of the Population.
 
@@ -281,8 +284,6 @@ class Population():
       List[Individual]: A list of List[:class:`Individual`] which represents the
       initial population
     """
-    self._sample_size = sample_size
-
     if (self._sample_size > self._max_sample_size):
       raise Exception(
         f'Sample size too big, maximum is: {self._max_sample_size}'
@@ -299,7 +300,7 @@ class Population():
 
       for sub_population in self._sub_populations:
         samples.append((
-          sample(sub_population.numbers, sample_size),
+          sample(sub_population.numbers, self._sample_size),
           sub_population.bits
         ))
 
@@ -352,7 +353,11 @@ class Population():
     """
     return self._current_population.copy()
 
-  def _update_current_population(self, new_population: List[Individual]) -> None:
+  def _update_current_population(
+    self,
+    new_population: List[Individual],
+    minimize: bool
+  ) -> None:
     """
     Method that updates the current sample, after crossover or mutation.
 
@@ -361,10 +366,14 @@ class Population():
     """
     if (len(new_population) > self._sample_size):
       self._current_population = new_population[:self._sample_size]
+      self._current_population.sort(reverse = minimize, key = lambda x: x.get_score())
+      self._fitness(self._current_population)
 
       return
 
     self._current_population = new_population
+    self._current_population.sort(reverse = minimize, key = lambda x: x.get_score())
+    self._fitness(self._current_population)
 
   def _select(
     self,
@@ -387,7 +396,8 @@ class Population():
     self._update_current_population(
       self._current_population[
         :len(self._current_population) - len(mutated_individuals)
-      ] + mutated_individuals[:sample_size]
+      ] + mutated_individuals[:sample_size],
+      minimize
     )
 
     # Calculate the mean of the population after the selection
@@ -415,16 +425,12 @@ class Population():
     for binary in binaries:
       for i, gen in enumerate(binary):
         try:
-          fen = binary_to_float(
+          binary_to_float(
             gen,
             self._sub_populations[i].numbers_dict,
             self._sub_populations[i].rng,
             self._precision
           )
-          x0, xf = self._sub_populations[i].rng
-
-          if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
-            return False
         except:
           return False
 
@@ -622,12 +628,10 @@ class Population():
             gray_p2[:point] + gray_p1[point:]
           ]
           first_binaries_to_validate = [
-            sub_strings_by_array(binary_children[0], bits),
-            sub_strings_by_array(gray_children[0], bits),
+            sub_strings_by_array(binary_children[0], bits)
           ]
           second_binaries_to_validate = [
-            sub_strings_by_array(binary_children[1], bits),
-            sub_strings_by_array(gray_children[1], bits)
+            sub_strings_by_array(binary_children[1], bits)
           ]
           are_first_binaries_valid = self._validate_binaries_in_range(
             first_binaries_to_validate
@@ -724,12 +728,10 @@ class Population():
             gray_p2[:p_min] + gray_p1[p_min:p_max] + gray_p2[p_max:]
           ]
           first_binaries_to_validate = [
-            sub_strings_by_array(binary_children[0], bits),
-            sub_strings_by_array(gray_children[0], bits),
+            sub_strings_by_array(binary_children[0], bits)
           ]
           second_binaries_to_validate = [
-            sub_strings_by_array(binary_children[1], bits),
-            sub_strings_by_array(gray_children[1], bits)
+            sub_strings_by_array(binary_children[1], bits)
           ]
           are_first_binaries_valid = self._validate_binaries_in_range(
             first_binaries_to_validate
@@ -814,12 +816,10 @@ class Population():
             gray_children[1] += gray_p0[i]
 
         first_binaries_to_validate = [
-          sub_strings_by_array(binary_children[0], bits),
-          sub_strings_by_array(gray_children[0], bits),
+          sub_strings_by_array(binary_children[0], bits)
         ]
         second_binaries_to_validate = [
-          sub_strings_by_array(binary_children[1], bits),
-          sub_strings_by_array(gray_children[1], bits)
+          sub_strings_by_array(binary_children[1], bits)
         ]
         are_first_binaries_valid = self._validate_binaries_in_range(
           first_binaries_to_validate
@@ -952,13 +952,11 @@ class Population():
       for i, gen in enumerate(gens):
         try:
           fen = float(
-            get_float_from_custom_representation(
-              binary_to_float(
-                gen,
-                self._sub_populations[i].numbers_dict,
-                self._sub_populations[i].rng,
-                self._precision
-              )
+            binary_to_float(
+              gen,
+              self._sub_populations[i].numbers_dict,
+              self._sub_populations[i].rng,
+              self._precision
             )
           )
           fens.append(fen)
@@ -1098,12 +1096,7 @@ class Population():
           self._sub_populations[i].rng,
           self._precision
         )
-        x0, xf = self._sub_populations[i].rng
-
-        if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
-          pass
-        else:
-          numbers += f'{fen}, '
+        numbers += f'{fen}, '
       except:
         pass
 
@@ -1117,7 +1110,6 @@ class Population():
 
   def canonical_algorithm(
     self,
-    SAMPLE_SIZE: int,
     ITERATIONS = 100,
     MINIMIZE = True,
     SEED = 1.1,
@@ -1168,7 +1160,7 @@ class Population():
     self._validate_crossover_methods(CROSSOVER_METHOD)
     self._validate_mutation_methods(MUTATION_METHOD)
 
-    self._select_initial_population(SAMPLE_SIZE)
+    self._select_initial_population()
     start = time()
     self._fitness(self._current_population)
     self._current_population.sort(
@@ -1203,12 +1195,12 @@ class Population():
       start = time()
       current_iteration += 1
       children = self._do_crossover_using_a_method(
-        SAMPLE_SIZE * SEED,
+        self._sample_size * SEED,
         CROSSOVER_METHOD,
         PARENT_SELECTION_METHOD,
         MINIMIZE
       )
-      self._select(children, MINIMIZE, SAMPLE_SIZE, MUTATION_METHOD)
+      self._select(children, MINIMIZE, self._sample_size, MUTATION_METHOD)
       scores.append(self._best_individual.get_score())
       fitness_avg_list.append(
         np.mean(
@@ -1239,7 +1231,7 @@ class Population():
 
     if PRINT:
       print(
-        f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}\n.Selection strength: {self._selection_strength}.'
+        f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
       )
 
     binaries = sub_strings_by_array(
@@ -1256,12 +1248,7 @@ class Population():
           self._sub_populations[i].rng,
           self._precision
         )
-        x0, xf = self._sub_populations[i].rng
-
-        if float(get_float_from_custom_representation(fen)) < x0 or float(get_float_from_custom_representation(fen)) > xf:
-          pass
-        else:
-          floats.append(get_float_from_custom_representation(fen))
+        floats.append(fen)
       except:
         pass
 

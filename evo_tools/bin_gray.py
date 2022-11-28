@@ -1,8 +1,6 @@
-from random import randint
+from random import randint, sample
 from math import log, log2
 from typing import Dict, List, Tuple, Union
-
-from evo_tools.custom import custom_range
 
 def binary_to_int(b: str) -> int:
   """
@@ -60,6 +58,16 @@ def int_to_gray(n: int) -> str:
 
   return g
 
+def gray_to_binary(gray: str, bits: int):
+  n = int(gray, 2) # convert to int
+  mask = n
+
+  while mask != 0:
+      mask >>= 1
+      n ^= mask
+
+  return format_to_n_bits(bin(n)[2:], bits)
+
 def format_to_n_bits(binary: str, bits: int) -> str:
   """
   Function to change the format of a binary to a fixed format. It adds 0s at the
@@ -108,7 +116,8 @@ def number_of_bits_for_a_range(
 
 def range_of_numbers_binary_and_gray(
   rng: Tuple[Union[float, int], Union[float, int]],
-  precision: Union[float, int]
+  precision: Union[float, int],
+  population_sample = 80
 ) -> Tuple[List[str], int]:
   """
   Function to create a list of str which contains the three representation of
@@ -150,21 +159,13 @@ def range_of_numbers_binary_and_gray(
   n_decimal_digits = int(round(log(p10, 10)))
   bits = number_of_bits_for_a_range(rng, precision, False)
   numbers: List[str] = []
+  aux = sample(range(0, int(abs(xf - x0) * p10) + 1), population_sample)
 
-  for i in custom_range(x0, xf + pow(10, -n_decimal_digits), precision):
-    number = int(p10 * i)
-
-    if x0 < 0:
-      number += int(-1 * x0 * p10)
-    elif x0 > 0:
-      number -= int(x0 * p10)
-
-    index = round(i, n_decimal_digits)
-
-    if index <= xf:
-      numbers.append(
-        f"{format(index, f'.{n_decimal_digits}f') if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1)};{format_to_n_bits(int_to_binary(number), bits)};{format_to_n_bits(int_to_gray(number), bits)}"
-      )
+  for i in aux:
+    index = round(i / p10 + x0, n_decimal_digits)
+    numbers.append(
+      f"{format(index, f'.{n_decimal_digits}f') if index != 0 else str(index * index) + str(0) * (n_decimal_digits - 1)};{format_to_n_bits(int_to_binary(i), bits)};{format_to_n_bits(int_to_gray(i), bits)}"
+    )
 
   return numbers, bits
 
@@ -197,9 +198,28 @@ def binary_to_float(
   try:
     return get_float_from_custom_representation(numbers[b])
   except:
-    raise Exception(
-      f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
-    )
+    x0, xf = rng
+
+    if x0 >= xf:
+      raise Exception(f'Bad range, {xf} must be greater than {x0}.')
+
+    if precision <= 0 or precision > 1:
+      raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
+
+    p10 = 1 if precision == 1 else round(pow(precision, -1))
+
+    if p10 != 1 and p10 % 10 != 0:
+      raise Exception(f'Bad precision: {precision} should be a positive decimal fraction or 1.')
+
+    n_decimal_digits = int(round(log(p10, 10)))
+    i = round((binary_to_int(b) + x0) / p10, n_decimal_digits)
+
+    if i < x0 or i > xf:
+      raise Exception(
+        f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
+      )
+
+    return f"{format(i, f'.{n_decimal_digits}f') if i != 0 else str(i * i) + str(0) * (n_decimal_digits - 1)}"
 
 def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """
