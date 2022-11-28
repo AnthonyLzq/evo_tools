@@ -1,8 +1,8 @@
 from time import time
-from typing import Tuple
-from sympy import sympify
+from sympy import sympify, exp
+from typing import Tuple, List, Dict
 
-from evo_tools.population import Population #, ParentSelectionMethods, CrossoverMethods, MutationMethods
+from evo_tools.population import Population
 
 def generate_variables_and_equation() -> Tuple[str, str]:
   while True:
@@ -101,7 +101,7 @@ def canonical_algorithm(
   parent_selection_method = 'fitness_proportionate',
   crossover_method = 'one_point',
   mutation_method = 'one_point'
-):
+) -> Tuple[List[float], Dict[str, str], exp, List[float], float]:
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
   population = Population(
@@ -134,6 +134,7 @@ def canonical_algorithm(
     mutation_method
   )
   end = time()
+  spend_time = end - start
 
   if _print:
     print()
@@ -142,4 +143,4 @@ def canonical_algorithm(
     print('result      :', result)
     print(f'time elapsed: {end - start}s')
 
-  return scores, solution, result, fitness_avg
+  return scores, solution, result, fitness_avg, spend_time

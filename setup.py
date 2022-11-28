@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '2.3.0'
+VERSION = '2.4.0'
 DESCRIPTION = 'Evolutionary programming tools'
 LONG_DESCRIPTION = 'A package that allows you to implement evolutionary algorithms.'
 
