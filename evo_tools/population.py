@@ -4,8 +4,7 @@ from typing import Dict, List, Tuple, Union
 from evo_tools.canonical import finalize_canonical_result, \
   run_canonical_algorithm, \
   validate_canonical_methods
-from evo_tools.domain import build_sub_populations, resolve_max_sample_size, \
-  validate_variable_count
+from evo_tools.domain import build_sub_populations, validate_variable_count
 from evo_tools.models import Individual, SubPopulation
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -132,7 +131,6 @@ class Population():
       self._precision,
       self._sample_size
     )
-    self._max_sample_size = resolve_max_sample_size(self._sub_populations)
     validate_variable_count(self._variables_array, self._sub_populations)
 
   def canonical_algorithm(
@@ -194,7 +192,6 @@ class Population():
       run_canonical_algorithm(
         self._initial_population,
         self._sample_size,
-        self._max_sample_size,
         self._sub_populations,
         self._precision,
         self._parsed_function,

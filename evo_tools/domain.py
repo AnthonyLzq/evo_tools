@@ -23,17 +23,6 @@ def build_sub_populations(
 
   return sub_populations
 
-def resolve_max_sample_size(sub_populations: List[SubPopulation]) -> int:
-  max_sample_size = len(sub_populations[0].numbers)
-
-  for sub_population in sub_populations:
-    sub_population_size = len(sub_population.numbers)
-
-    if sub_population_size < max_sample_size:
-      max_sample_size = sub_population_size
-
-  return max_sample_size
-
 def validate_variable_count(
   variables_array: List[str],
   sub_populations: List[SubPopulation]

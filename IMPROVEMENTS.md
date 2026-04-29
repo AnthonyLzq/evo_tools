@@ -378,7 +378,7 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
 - Symbolic substitutions for every individual.
 - Repeated string concatenation and parsing.
 - Repeated validation in crossover and mutation loops.
-- Population sizing is still tied to the smallest per-variable discrete domain, which blocks binary combinatorial problems such as 0/1 knapsack.
+- Population sizing was tied to the smallest per-variable discrete domain; initialization now samples with replacement when needed, but the engine still needs an end-to-end deterministic knapsack acceptance case.
 
 ### Files involved
 
@@ -404,7 +404,7 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
    - Move to lists, tuples, dataclasses, and controlled joins.
 
 5. **Support binary combinatorial search**
-   - Decouple `sample_size` from the smallest single-variable domain size.
+   - Keep `sample_size` independent from the smallest single-variable domain size.
    - Allow high-dimensional binary problems even when each variable has only two states.
    - Add a deterministic reference case for 0/1 knapsack to prove the engine can express and solve that class of problem.
 

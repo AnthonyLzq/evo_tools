@@ -58,7 +58,6 @@ def finalize_canonical_result(
 def run_canonical_algorithm(
   initial_population: List[Individual],
   sample_size: int,
-  max_sample_size: int,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
@@ -79,7 +78,6 @@ def run_canonical_algorithm(
     scores, fitness_avg_list = initialize_canonical_state(
       initial_population,
       sample_size,
-      max_sample_size,
       sub_populations,
       precision,
       parsed_function,

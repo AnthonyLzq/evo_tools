@@ -79,7 +79,6 @@ def best_individual(current_population: List[Individual]) -> Individual:
 def initialize_canonical_state(
   initial_population: List[Individual],
   sample_size: int,
-  max_sample_size: int,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
@@ -91,7 +90,6 @@ def initialize_canonical_state(
   initial_population, current_population = select_initial_population(
     initial_population,
     sample_size,
-    max_sample_size,
     sub_populations,
     precision,
     parsed_function,

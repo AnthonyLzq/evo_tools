@@ -1,4 +1,4 @@
-from random import sample
+from random import choices, sample
 from typing import List, Tuple, Union
 
 from evo_tools.bin_gray import get_binary_from_custom_representation, \
@@ -14,7 +14,9 @@ def sample_sub_populations(
 ) -> List[Tuple[List[str], int]]:
   return [
     (
-      sample(sub_population.numbers, sample_size),
+      sample(sub_population.numbers, sample_size)
+      if sample_size <= len(sub_population.numbers) else
+      choices(sub_population.numbers, k = sample_size),
       sub_population.bits
     )
     for sub_population in sub_populations
@@ -57,16 +59,12 @@ def build_initial_individual(
 def select_initial_population(
   initial_population: List[Individual],
   sample_size: int,
-  max_sample_size: int,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
   should_print: bool = False
 ) -> Tuple[List[Individual], List[Individual]]:
-  if sample_size > max_sample_size:
-    raise Exception(f'Sample size too big, maximum is: {max_sample_size}')
-
   if len(initial_population) > 0:
     if should_print:
       print_initial_population(initial_population)
