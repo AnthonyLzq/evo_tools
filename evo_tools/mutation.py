@@ -3,9 +3,8 @@ from typing import List, Union
 
 from evo_tools.bin_gray import binary_to_gray, format_to_n_bits, \
   mutate_n_bits_from_binary_or_gray, mutation_binary_or_gray_by_flipping
-from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.phenotype import build_individual, validate_binaries_in_range
+from evo_tools.phenotype import build_individual_if_valid
 
 MUTATION_METHODS = (
   'one_point',
@@ -56,26 +55,18 @@ def mutate_individual(
       binary_to_gray(binary),
       sum(bits)
     )
-    binaries_to_validate = [
-      sub_strings_by_array(binary, bits),
-      sub_strings_by_array(gray, bits)
-    ]
-    are_binaries_valid = validate_binaries_in_range(
-      binaries_to_validate,
+    valid_mutation = build_individual_if_valid(
+      binary,
+      gray,
+      bits,
       sub_populations,
-      precision
+      precision,
+      parsed_function,
+      variables_array
     )
 
-    if are_binaries_valid:
-      return build_individual(
-        binary,
-        gray,
-        bits,
-        sub_populations,
-        precision,
-        parsed_function,
-        variables_array
-      )
+    if valid_mutation is not None:
+      return valid_mutation
 
     if attempts > 5:
       return None
