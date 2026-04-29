@@ -363,15 +363,7 @@ class Population():
       if (self._print):
         print(f'Chromosome {i}: {chromosome}')
 
-      gens = sub_strings_by_array(chromosome, individual.get_bits())
-      fens: List[float] = []
-
-      if validate_binaries_in_range([gens], self._sub_populations, self._precision):
-        _, fens = decode_binary_segments(
-          gens,
-          self._sub_populations,
-          self._precision
-        )
+      gens, fens = self._decode_individual(individual)
 
       if (self._print):
         print(f'  gens: {gens}')
@@ -444,6 +436,41 @@ class Population():
       )
     ))
 
+  def _decode_individual(
+    self,
+    individual: Individual
+  ) -> Tuple[List[str], List[float]]:
+    gens = sub_strings_by_array(
+      individual.get_binary(),
+      individual.get_bits()
+    )
+    fens: List[float] = []
+
+    if validate_binaries_in_range([gens], self._sub_populations, self._precision):
+      _, fens = decode_binary_segments(
+        gens,
+        self._sub_populations,
+        self._precision
+      )
+
+    return gens, fens
+
+  def _build_solution(
+    self,
+    floats: List[float]
+  ) -> Tuple[Dict[str, float], exp]:
+    if len(floats) == 0:
+      raise Exception('Something went wrong')
+
+    function = self._parsed_function
+    solution: Dict[str, float] = {}
+
+    for i, v in enumerate(self._variables_array):
+      function = function.subs(v, floats[i])
+      solution[v] = floats[i]
+
+    return solution, function
+
   def _print_iteration_summary(
     self,
     current_iteration: int,
@@ -460,7 +487,7 @@ class Population():
     self,
     current_iteration: int,
     fitness_avg_list: List[float],
-    solution: Dict[str, str],
+    solution: Dict[str, float],
     function
   ) -> None:
     print(
@@ -480,7 +507,7 @@ class Population():
     PARENT_SELECTION_METHOD = 'fitness_proportionate',
     CROSSOVER_METHOD = 'one_point',
     MUTATION_METHOD = 'one_point'
-  ) -> Tuple[List[float], Dict[str, str], exp, List[float]]:
+  ) -> Tuple[List[float], Dict[str, float], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
     1. select initial population
@@ -514,7 +541,7 @@ class Population():
       given intervals.
 
     Returns:
-      Tuple[List[float], Dict[str, str], exp, fitness_avg_list]: A tuple that
+      Tuple[List[float], Dict[str, float], exp, fitness_avg_list]: A tuple that
       contains the list of historical scores from each generation, a Dict with
       the solution for each given variable, the result calculated for the
       obtained solution and the average of the fitness per each generation.
@@ -564,25 +591,8 @@ class Population():
           end - start
         )
 
-    binaries = sub_strings_by_array(
-      self._best_individual.get_binary(),
-      self._best_individual.get_bits()
-    )
-    floats, _ = decode_binary_segments(
-      binaries,
-      self._sub_populations,
-      self._precision
-    )
-
-    if len(floats) == 0:
-      raise Exception('Something went wrong')
-
-    function = self._parsed_function
-    solution: Dict[str, str] = {}
-
-    for i, v in enumerate(self._variables_array):
-      function = function.subs(v, floats[i])
-      solution[v] = floats[i]
+    _, floats = self._decode_individual(self._best_individual)
+    solution, function = self._build_solution(floats)
 
     if PRINT:
       self._print_final_summary(

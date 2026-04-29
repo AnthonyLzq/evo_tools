@@ -101,7 +101,7 @@ def canonical_algorithm(
   parent_selection_method = 'fitness_proportionate',
   crossover_method = 'one_point',
   mutation_method = 'one_point'
-) -> Tuple[List[float], Dict[str, str], exp, List[float], float]:
+) -> Tuple[List[float], Dict[str, float], exp, List[float], float]:
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
   population = Population(
