@@ -113,7 +113,7 @@ class Population():
     self._crossover_rate = crossover_rate
     self._mutation_rate = mutation_rate
     self._variables_array = variables.split()
-    self._parsed_function = sympify(str(function))
+    self._parsed_function = sympify(function)
     self._objective_function = lambdify(
       self._variables_array,
       self._parsed_function,

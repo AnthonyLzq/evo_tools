@@ -204,6 +204,27 @@ def test_binary_population_can_exceed_single_variable_domain_size() -> None:
   assert float(result) >= 0
   assert all(value in (0.0, 1.0) for value in solution.values())
 
+def test_population_sympifies_expression_without_string_roundtrip() -> None:
+  expression = sympify('x + 1')
+  captured = {}
+
+  def fake_sympify(value):
+    captured['value'] = value
+
+    return value
+
+  with patch('evo_tools.population.sympify', side_effect = fake_sympify):
+    Population(
+      [(0, 2)],
+      1,
+      1,
+      0.01,
+      'x',
+      expression
+    )
+
+  assert captured['value'] is expression
+
 def test_canonical_algorithm_solves_reference_knapsack_case() -> None:
   weights = [10, 20, 30, 5, 15, 25, 7, 12, 18, 3]
   values = [60, 100, 120, 30, 80, 90, 40, 70, 85, 20]
