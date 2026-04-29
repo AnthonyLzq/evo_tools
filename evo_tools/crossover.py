@@ -6,6 +6,12 @@ from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual, validate_binaries_in_range
 
+CROSSOVER_METHODS = (
+  'one_point',
+  'two_points',
+  'uniform'
+)
+
 
 def _build_child(
   binary: str,
@@ -285,3 +291,38 @@ def crossover_uniform(
       )
 
   return children
+
+
+def validate_crossover_method(crossover_method: str) -> None:
+  if crossover_method in CROSSOVER_METHODS:
+    return
+
+  raise Exception('Crossover method not allowed')
+
+
+def apply_crossover(
+  parents: List[Tuple[Individual, Individual]],
+  crossover_method: str,
+  crossover_rate: float,
+  sub_populations: List[SubPopulation],
+  precision: Union[float, int],
+  parsed_function,
+  variables_array: List[str]
+) -> List[Individual]:
+  crossover_functions = {
+    CROSSOVER_METHODS[0]: crossover_one_point,
+    CROSSOVER_METHODS[1]: crossover_two_points,
+    CROSSOVER_METHODS[2]: crossover_uniform
+  }
+
+  try:
+    return crossover_functions[crossover_method](
+      parents,
+      crossover_rate,
+      sub_populations,
+      precision,
+      parsed_function,
+      variables_array
+    )
+  except KeyError as exc:
+    raise Exception('Crossover method not allowed') from exc

@@ -78,3 +78,12 @@ options instead of relying on undocumented string literals.
 ```python
 from evo_tools import PARENT_SELECTION_METHODS
 ```
+
+It also exposes the supported crossover and mutation methods:
+
+- `CROSSOVER_METHODS`: `one_point`, `two_points`, `uniform`
+- `MUTATION_METHODS`: `one_point`, `two_points`, `flipping`
+
+```python
+from evo_tools import CROSSOVER_METHODS, MUTATION_METHODS
+```

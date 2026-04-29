@@ -6,23 +6,30 @@ from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual, validate_binaries_in_range
 
+MUTATION_METHODS = (
+  'one_point',
+  'two_points',
+  'flipping'
+)
+
+
 def apply_mutation(
   mutation_method: str,
   binary_or_gray: str
 ) -> str:
-  if mutation_method == 'one_point':
-    return mutate_n_bits_from_binary_or_gray(binary_or_gray)
+  mutation_functions = {
+    MUTATION_METHODS[0]: lambda: mutate_n_bits_from_binary_or_gray(binary_or_gray),
+    MUTATION_METHODS[1]: lambda: mutate_n_bits_from_binary_or_gray(binary_or_gray, 2),
+    MUTATION_METHODS[2]: lambda: mutation_binary_or_gray_by_flipping(binary_or_gray)
+  }
 
-  if mutation_method == 'two_points':
-    return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
-
-  if mutation_method == 'flipping':
-    return mutation_binary_or_gray_by_flipping(binary_or_gray)
-
-  raise Exception('Mutation method not allowed')
+  try:
+    return mutation_functions[mutation_method]()
+  except KeyError as exc:
+    raise Exception('Mutation method not allowed') from exc
 
 def validate_mutation_method(mutation_method: str) -> None:
-  if mutation_method in ['one_point', 'two_points', 'flipping']:
+  if mutation_method in MUTATION_METHODS:
     return
 
   raise Exception('Mutation method not allowed')

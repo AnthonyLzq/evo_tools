@@ -10,7 +10,7 @@ from time import time
 from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
-from evo_tools.crossover import crossover_one_point, crossover_two_points, crossover_uniform
+from evo_tools.crossover import apply_crossover, validate_crossover_method
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_individual, validate_mutation_method
@@ -418,8 +418,6 @@ class Population():
     parent_selection_method,
     minimize: bool
   ):
-    crossover_function = self._get_crossover_function(crossover_method)
-
     parents = self._select_parents(
       seed,
       parent_selection_method,
@@ -429,29 +427,15 @@ class Population():
     if len(parents) == 0:
       return []
 
-    return crossover_function(
+    return apply_crossover(
       parents,
+      crossover_method,
       self._crossover_rate,
       self._sub_populations,
       self._precision,
       self._parsed_function,
       self._variables_array
     )
-
-  def _get_crossover_function(
-    self,
-    crossover_method
-  ):
-    crossover_functions = {
-      'one_point': crossover_one_point,
-      'two_points': crossover_two_points,
-      'uniform': crossover_uniform
-    }
-
-    try:
-      return crossover_functions[crossover_method]
-    except KeyError as exc:
-      raise Exception('Crossover method not allowed') from exc
 
   def _population_fitness_average(self) -> float:
     return float(np.mean(
@@ -536,7 +520,7 @@ class Population():
       obtained solution and the average of the fitness per each generation.
     """
     validate_parent_selection_method(PARENT_SELECTION_METHOD)
-    self._get_crossover_function(CROSSOVER_METHOD)
+    validate_crossover_method(CROSSOVER_METHOD)
     validate_mutation_method(MUTATION_METHOD)
 
     self._select_initial_population()
