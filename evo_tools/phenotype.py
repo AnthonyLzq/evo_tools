@@ -131,3 +131,42 @@ def build_solution(
     solution[variable] = floats[i]
 
   return solution, function
+
+def evaluate_individual_objective(
+  individual: Individual,
+  index: int,
+  sub_populations: List[SubPopulation],
+  precision: Union[float, int],
+  parsed_function,
+  variables_array: List[str],
+  should_print: bool = False
+) -> Union[float, None]:
+  chromosome = individual.get_binary()
+
+  if should_print:
+    print(f'Chromosome {index}: {chromosome}')
+
+  binaries, decoded_numbers = decode_individual(
+    individual,
+    sub_populations,
+    precision
+  )
+
+  if should_print:
+    print(f'  gens: {binaries}')
+    print(f'  fens: {decoded_numbers}')
+
+  if len(binaries) != len(decoded_numbers):
+    if should_print:
+      print(f'  fitness: Fail\n')
+
+    return None
+
+  objective_value = float(
+    evaluate_function(parsed_function, variables_array, decoded_numbers)
+  )
+
+  if should_print:
+    print(f'  fitness: {objective_value}\n')
+
+  return objective_value

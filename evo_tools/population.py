@@ -13,7 +13,7 @@ from evo_tools.crossover import apply_crossover, validate_crossover_method
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_children, validate_mutation_method
 from evo_tools.phenotype import build_individual, build_solution, \
-  decode_individual, evaluate_function
+  decode_individual, evaluate_individual_objective
 from evo_tools.scoring import assign_scores, population_fitness_average, \
   population_score_stats, selection_strength, sort_population_by_score
 from evo_tools.selection import select_parents, validate_parent_selection_method
@@ -348,7 +348,15 @@ class Population():
     for i, individual in enumerate(population_sample):
       individual.set_score(0)
       individual.set_objective_value(None)
-      objective_value = self._evaluate_individual_objective(individual, i)
+      objective_value = evaluate_individual_objective(
+        individual,
+        i,
+        self._sub_populations,
+        self._precision,
+        self._parsed_function,
+        self._variables_array,
+        self._print
+      )
 
       if objective_value is not None:
         function_evaluations.append(objective_value)
@@ -358,41 +366,6 @@ class Population():
       return
 
     assign_scores(population_sample, function_evaluations, minimize)
-
-  def _evaluate_individual_objective(
-    self,
-    individual: Individual,
-    index: int
-  ) -> Union[float, None]:
-    chromosome = individual.get_binary()
-
-    if (self._print):
-      print(f'Chromosome {index}: {chromosome}')
-
-    gens, fens = decode_individual(
-      individual,
-      self._sub_populations,
-      self._precision
-    )
-
-    if (self._print):
-      print(f'  gens: {gens}')
-      print(f'  fens: {fens}')
-
-    if len(gens) != len(fens):
-      if self._print:
-        print(f'  fitness: Fail\n')
-
-      return None
-
-    objective_value = float(
-      evaluate_function(self._parsed_function, self._variables_array, fens)
-    )
-
-    if self._print:
-      print(f'  fitness: {objective_value}\n')
-
-    return objective_value
 
   def _generate_children(
     self,
