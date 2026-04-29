@@ -479,6 +479,40 @@ class Population():
   ):
     validate_mutation_method(mutation_method)
 
+  def _population_fitness_average(self) -> float:
+    return float(np.mean(
+      np.array(
+        [individual.get_fitness() for individual in self._current_population] # type: ignore
+      )
+    ))
+
+  def _print_iteration_summary(
+    self,
+    current_iteration: int,
+    selection_strength: float,
+    elapsed_time: float
+  ) -> None:
+    print(
+      f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {selection_strength}.\nTime elapsed: {elapsed_time}s.'
+    )
+    df = pd.DataFrame(loads(str(self._current_population)))
+    print(df, end = '\n\n')
+
+  def _print_final_summary(
+    self,
+    current_iteration: int,
+    fitness_avg_list: List[float],
+    solution: Dict[str, str],
+    function
+  ) -> None:
+    print(
+      f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
+    )
+    print('Solution:')
+    print(f'  Variables: {solution}')
+    print(f'  Evaluation: {function}')
+    print(f'  Fitness average: {fitness_avg_list}')
+
   def canonical_algorithm(
     self,
     ITERATIONS = 100,
@@ -538,26 +572,15 @@ class Population():
     self._best_individual = self._current_population[0]
     current_iteration = 1
     scores: List[float] = []
-    fitness_avg_list: List[float] = [
-      np.mean(
-        np.array(
-          list(
-            map(
-              lambda individual: individual.get_fitness(),
-              self._current_population
-            )
-          ) # type: ignore
-        )
-      )
-    ]
+    fitness_avg_list: List[float] = [self._population_fitness_average()]
     end = time()
 
     if PRINT:
-      print(
-        f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.\nTime elapsed: {end - start}s.'
+      self._print_iteration_summary(
+        current_iteration,
+        self._selection_strength,
+        end - start
       )
-      df = pd.DataFrame(loads(str(self._current_population)))
-      print(df, end = '\n\n')
 
     for i in range(ITERATIONS - 1):
       start = time()
@@ -570,34 +593,18 @@ class Population():
       )
       self._select(children, MINIMIZE, self._sample_size, MUTATION_METHOD)
       scores.append(self._best_individual.get_score())
-      fitness_avg_list.append(
-        np.mean(
-          np.array(
-            list(
-              map(
-                lambda individual: individual.get_fitness(),
-                self._current_population
-              )
-            ) # type: ignore
-          )
-        )
-      )
+      fitness_avg_list.append(self._population_fitness_average())
       end = time()
 
       if self._selection_strength <= 1e-4:
         break
 
       if PRINT:
-        print(
-          f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.\nTime elapsed: {end - start}s.'
+        self._print_iteration_summary(
+          current_iteration,
+          self._selection_strength,
+          end - start
         )
-        df = pd.DataFrame(loads(str(self._current_population)))
-        print(df, end = '\n\n')
-
-    if PRINT:
-      print(
-        f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
-      )
 
     binaries = sub_strings_by_array(
       self._best_individual.get_binary(),
@@ -620,9 +627,11 @@ class Population():
       solution[v] = floats[i]
 
     if PRINT:
-      print('Solution:')
-      print(f'  Variables: {solution}')
-      print(f'  Evaluation: {function}')
-      print(f'  Fitness average: {fitness_avg_list}')
+      self._print_final_summary(
+        current_iteration,
+        fitness_avg_list,
+        solution,
+        function
+      )
 
     return scores, solution, function, fitness_avg_list
