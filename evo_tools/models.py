@@ -62,7 +62,7 @@ class Individual():
       return self._objective_value
 
     numbers = loads(self._numbers)
-    f = self._function.copy()
+    f = self._function
 
     for i, n in enumerate(numbers):
       f = f.subs(self._variables_array[i], n)

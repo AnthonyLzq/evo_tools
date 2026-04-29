@@ -1,8 +1,6 @@
 from random import choice, random, sample
 from typing import List, Tuple, Union
 
-from sympy import sympify
-
 from evo_tools.bin_gray import generate_random_binary_with_a_len
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
@@ -15,8 +13,8 @@ def _build_child(
   bits: List[int],
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  function,
-  variables: str
+  parsed_function,
+  variables_array: List[str]
 ) -> Individual:
   return Individual(
     binary,
@@ -24,8 +22,8 @@ def _build_child(
     0,
     bits,
     chromosome_to_numbers_repr(binary, bits, sub_populations, precision),
-    sympify(str(function)),
-    variables.split()
+    parsed_function,
+    variables_array.copy()
   )
 
 
@@ -58,8 +56,8 @@ def _append_valid_children(
   second_child_is_valid: bool,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  function,
-  variables: str
+  parsed_function,
+  variables_array: List[str]
 ) -> None:
   if first_child_is_valid:
     children.append(
@@ -69,8 +67,8 @@ def _append_valid_children(
         bits,
         sub_populations,
         precision,
-        function,
-        variables
+        parsed_function,
+        variables_array
       )
     )
 
@@ -82,8 +80,8 @@ def _append_valid_children(
         bits,
         sub_populations,
         precision,
-        function,
-        variables
+        parsed_function,
+        variables_array
       )
     )
 
@@ -93,8 +91,8 @@ def crossover_one_point(
   crossover_rate: float,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  function,
-  variables: str
+  parsed_function,
+  variables_array: List[str]
 ) -> List[Individual]:
   if len(parents) == 0:
     return []
@@ -151,8 +149,8 @@ def crossover_one_point(
         second_child_is_valid,
         sub_populations,
         precision,
-        function,
-        variables
+        parsed_function,
+        variables_array
       )
 
   return children
@@ -163,8 +161,8 @@ def crossover_two_points(
   crossover_rate: float,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  function,
-  variables: str
+  parsed_function,
+  variables_array: List[str]
 ) -> List[Individual]:
   if len(parents) == 0:
     return []
@@ -224,8 +222,8 @@ def crossover_two_points(
         second_child_is_valid,
         sub_populations,
         precision,
-        function,
-        variables
+        parsed_function,
+        variables_array
       )
 
   return children
@@ -236,8 +234,8 @@ def crossover_uniform(
   crossover_rate: float,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  function,
-  variables: str
+  parsed_function,
+  variables_array: List[str]
 ) -> List[Individual]:
   if len(parents) == 0:
     return []
@@ -282,8 +280,8 @@ def crossover_uniform(
         second_child_is_valid,
         sub_populations,
         precision,
-        function,
-        variables
+        parsed_function,
+        variables_array
       )
 
   return children

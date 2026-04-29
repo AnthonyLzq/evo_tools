@@ -125,6 +125,8 @@ class Population():
     self._mutation_rate = mutation_rate
     self._variables = variables
     self._function = function
+    self._variables_array = self._variables.split()
+    self._parsed_function = sympify(str(self._function))
     self._print = _print
     self._current_population: List[Individual] = []
     self._initial_population: List[Individual] = []
@@ -152,9 +154,7 @@ class Population():
       if aux < self._max_sample_size:
         self._max_sample_size = aux
 
-    variables_array = self._variables.split()
-
-    if (len(variables_array) != len(self._sub_populations)):
+    if (len(self._variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
   def _select_initial_population(self) -> List[Individual]:
@@ -219,8 +219,8 @@ class Population():
             0,
             bits,
             numbers,
-            sympify(str(self._function)),
-            self._variables.split()
+            self._parsed_function,
+            self._variables_array.copy()
           )
         )
 
@@ -365,8 +365,8 @@ class Population():
               0,
               bits,
               self._get_fen(binary, bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
+              self._parsed_function,
+              self._variables_array.copy()
             )
             mutated_children.pop()
             mutated_children.append(mutated_child)
@@ -397,8 +397,6 @@ class Population():
       minimize (bool, optional): a boolean that indicates if the problem
       is it a minimization or maximization problem. Defaults to True.
     """
-    variables_array = self._variables.split()
-
     if len(population_sample) == 0:
       return
 
@@ -426,11 +424,11 @@ class Population():
         print(f'  gens: {gens}')
         print(f'  fens: {fens}')
 
-      function: exp = sympify(str(self._function))
+      function: exp = self._parsed_function
 
       if len(gens) == len(fens):
         # Evaluate the given function variable per variable
-        for i, v in enumerate(variables_array):
+        for i, v in enumerate(self._variables_array):
           function = function.subs(v, fens[i])  # type: ignore
 
         objective_value = float(function)
@@ -503,8 +501,8 @@ class Population():
       self._crossover_rate,
       self._sub_populations,
       self._precision,
-      self._function,
-      self._variables
+      self._parsed_function,
+      self._variables_array
     )
 
   def _validate_crossover_methods(
@@ -663,11 +661,10 @@ class Population():
     if len(floats) == 0:
       raise Exception('Something went wrong')
 
-    variables_array = self._variables.split()
-    function = sympify(str(self._function))
+    function = self._parsed_function
     solution: Dict[str, str] = {}
 
-    for i, v in enumerate(variables_array):
+    for i, v in enumerate(self._variables_array):
       function = function.subs(v, floats[i])
       solution[v] = floats[i]
 
