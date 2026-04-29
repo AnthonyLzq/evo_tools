@@ -1,6 +1,10 @@
 from unittest import skip
 from unittest.mock import patch
+from sympy import sympify
+
 from evo_tools import example
+from evo_tools.canonical import finalize_canonical_result
+from evo_tools.models import Individual
 
 LINEAR_EQUATION = '2 * x + y - z - 3'
 
@@ -128,3 +132,26 @@ def test_canonical_algorithm_quadratic_2(a, b) -> None:
   )
   result = abs(result)
   assert round(result, 2) <= 31 * 31 and round(result, 2) >= 30 * 30  # type: ignore
+
+def test_finalize_canonical_result_uses_cached_numbers() -> None:
+  best_individual = Individual(
+    'invalid',
+    'invalid',
+    0,
+    [2],
+    '[2.0]',
+    sympify('x * x'),
+    ['x']
+  )
+
+  solution, function = finalize_canonical_result(
+    best_individual,
+    sympify('x * x'),
+    ['x'],
+    1,
+    0.0,
+    [4.0]
+  )
+
+  assert solution == {'x': 2.0}
+  assert float(function) == 4.0

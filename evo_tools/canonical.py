@@ -5,9 +5,9 @@ from sympy import exp
 
 from evo_tools.crossover import validate_crossover_method
 from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
-from evo_tools.models import Individual, SubPopulation
+from evo_tools.models import Individual
 from evo_tools.mutation import validate_mutation_method
-from evo_tools.phenotype import build_solution, decode_individual
+from evo_tools.phenotype import build_solution
 from evo_tools.reporting import print_final_summary, print_iteration_summary
 from evo_tools.selection import validate_parent_selection_method
 
@@ -23,8 +23,6 @@ def validate_canonical_methods(
 
 def finalize_canonical_result(
   best_individual: Individual,
-  sub_populations: List[SubPopulation],
-  precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
   current_iteration: int,
@@ -32,13 +30,8 @@ def finalize_canonical_result(
   fitness_avg_list: List[float],
   should_print: bool = False
 ) -> Tuple[Dict[str, float], exp]:
-  _, floats = decode_individual(
-    best_individual,
-    sub_populations,
-    precision
-  )
   solution, function = build_solution(
-    floats,
+    best_individual.get_numbers_tuple(),
     parsed_function,
     variables_array
   )

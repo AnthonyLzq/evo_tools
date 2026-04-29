@@ -122,7 +122,7 @@ def decode_individual(
 def evaluate_function(
   parsed_function,
   variables_array: List[str],
-  values: List[float]
+  values: Sequence[float]
 ) -> exp:
   function = parsed_function
 
@@ -132,7 +132,7 @@ def evaluate_function(
   return function
 
 def build_solution(
-  floats: List[float],
+  floats: Sequence[float],
   parsed_function,
   variables_array: List[str]
 ) -> Tuple[Dict[str, float], exp]:

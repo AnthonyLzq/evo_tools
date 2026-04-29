@@ -210,8 +210,6 @@ class Population():
 
     solution, function = finalize_canonical_result(
       self._best_individual,
-      self._sub_populations,
-      self._precision,
       self._parsed_function,
       self._variables_array,
       current_iteration,
