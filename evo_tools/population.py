@@ -134,7 +134,14 @@ class Population():
 
     p10 = 1 if precision == 1 else pow(precision, -1)
     self._n_decimal_digits = int(round(log(p10, 10)))
+    self._build_sub_populations(ranges)
+    self._max_sample_size = self._resolve_max_sample_size()
+    self._validate_variable_count()
 
+  def _build_sub_populations(
+    self,
+    ranges: List[Tuple[Union[float, int], Union[float, int]]]
+  ) -> None:
     for rng in ranges:
       sub_population_range, bits = range_of_numbers_binary_and_gray(
         rng,
@@ -144,14 +151,19 @@ class Population():
       self._sub_populations.append(
         SubPopulation(rng, sub_population_range, bits)
       )
-    self._max_sample_size = len(self._sub_populations[0].numbers)
+
+  def _resolve_max_sample_size(self) -> int:
+    max_sample_size = len(self._sub_populations[0].numbers)
 
     for sub_population in self._sub_populations:
-      aux = len(sub_population.numbers)
+      sub_population_size = len(sub_population.numbers)
 
-      if aux < self._max_sample_size:
-        self._max_sample_size = aux
+      if sub_population_size < max_sample_size:
+        max_sample_size = sub_population_size
 
+    return max_sample_size
+
+  def _validate_variable_count(self) -> None:
     if (len(self._variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
