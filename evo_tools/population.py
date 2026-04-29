@@ -14,6 +14,7 @@ from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import apply_mutation, validate_mutation_method
+from evo_tools.scoring import assign_scores, sort_population_by_score
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
   select_parents_by_roulette, select_parents_by_tournament
 
@@ -255,7 +256,7 @@ class Population():
       self._current_population = new_population
 
     self._fitness(self._current_population, minimize)
-    self._sort_population_by_score(self._current_population)
+    sort_population_by_score(self._current_population)
 
   def _select(
     self,
@@ -266,7 +267,7 @@ class Population():
   ) -> None:
     mutated_individuals = self._mutation(individuals, mutation_method)
     self._fitness(mutated_individuals, minimize)
-    self._sort_population_by_score(mutated_individuals)
+    sort_population_by_score(mutated_individuals)
 
     # Calculate the mean and std of the population before the selection
     current_population_score = np.array([
@@ -749,25 +750,10 @@ class Population():
       elif self._print:
         print(f'  fitness: Fail\n')
 
-    valid_population_sample = [
-      individual for individual in population_sample if individual._objective_value is not None
-    ]
-
     if len(function_evaluations) == 0:
       return
 
-    reference_value = max(function_evaluations) if minimize else min(function_evaluations)
-
-    for i, objective_value in enumerate(function_evaluations):
-      score = (
-        1e-3 + reference_value - objective_value
-        if minimize else
-        1e-3 + objective_value - reference_value
-      )
-      valid_population_sample[i].set_score(score)
-
-  def _sort_population_by_score(self, population_sample: List[Individual]) -> None:
-    population_sample.sort(reverse = True, key = lambda x: x.get_score())
+    assign_scores(population_sample, function_evaluations, minimize)
 
   def _generate_parents_using_a_method(
     self,
@@ -910,7 +896,7 @@ class Population():
     self._select_initial_population()
     start = time()
     self._fitness(self._current_population, MINIMIZE)
-    self._sort_population_by_score(self._current_population)
+    sort_population_by_score(self._current_population)
     self._best_individual = self._current_population[0]
     current_iteration = 1
     scores: List[float] = []
