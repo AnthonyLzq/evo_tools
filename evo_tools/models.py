@@ -50,6 +50,9 @@ class Individual():
   def set_objective_value(self, objective_value: Union[float, None]) -> None:
     self._objective_value = objective_value
 
+  def has_objective_value(self) -> bool:
+    return self._objective_value is not None
+
   def get_objective_value(self) -> float:
     if self._objective_value is None:
       raise Exception('Objective value has not been calculated')

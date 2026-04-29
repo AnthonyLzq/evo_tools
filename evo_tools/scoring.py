@@ -14,7 +14,7 @@ def assign_scores(
     return
 
   valid_population_sample = [
-    individual for individual in population_sample if individual._objective_value is not None
+    individual for individual in population_sample if individual.has_objective_value()
   ]
   reference_value = max(objective_values) if minimize else min(objective_values)
 
@@ -76,7 +76,11 @@ def rank_population(
 
   for i, individual in enumerate(population_sample):
     individual.set_score(0)
-    individual.set_objective_value(None)
+
+    if individual.has_objective_value():
+      objective_values.append(individual.get_objective_value())
+      continue
+
     objective_value = evaluate_individual_objective(
       individual,
       i,

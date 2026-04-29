@@ -63,6 +63,30 @@ def test_fitness_scores_follow_optimization_direction() -> None:
   assert minimize_scores[0.0] > minimize_scores[1.0] > minimize_scores[2.0]
   assert maximize_scores[2.0] > maximize_scores[1.0] > maximize_scores[0.0]
 
+def test_rank_population_reuses_cached_objective_values() -> None:
+  population = build_population((0, 2), 1)
+  rank_population(
+    population._current_population,
+    False,
+    population._sub_populations,
+    population._precision,
+    population._objective_function
+  )
+
+  with patch(
+    'evo_tools.scoring.evaluate_individual_objective',
+    side_effect = AssertionError('unexpected reevaluation')
+  ):
+    rank_population(
+      population._current_population,
+      False,
+      population._sub_populations,
+      population._precision,
+      population._objective_function
+    )
+
+  assert all(individual.has_objective_value() for individual in population._current_population)
+
 def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)
   current_population = population._current_population.copy()
