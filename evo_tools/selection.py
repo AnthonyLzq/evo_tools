@@ -3,7 +3,8 @@ from typing import List, Tuple
 import numpy as np
 
 from evo_tools.models import Individual
-from evo_tools.randomness import sample_without_replacement
+from evo_tools.randomness import sample_index_pairs_by_probabilities, \
+  sample_without_replacement
 
 PARENT_SELECTION_METHODS = (
   'fitness_proportionate',
@@ -60,10 +61,10 @@ def _select_parents_by_probabilities(
   seed: float,
   probabilities: np.ndarray
 ) -> List[Tuple[Individual, Individual]]:
-  random_parents_indexes_chosen = np.random.choice(
+  random_parents_indexes_chosen = sample_index_pairs_by_probabilities(
     len(population),
-    size = (round(seed), 2),
-    p = probabilities
+    round(seed),
+    probabilities
   )
 
   return _build_parent_pairs(

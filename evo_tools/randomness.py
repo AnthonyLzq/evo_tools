@@ -35,3 +35,17 @@ def sample_with_replacement(items: Sequence[T], size: int) -> List[T]:
   indexes = np.random.choice(len(items), size = size, replace = True)
 
   return [items[int(index)] for index in np.atleast_1d(indexes)]
+
+def sample_index_pairs_by_probabilities(
+  population_size: int,
+  pair_count: int,
+  probabilities: np.ndarray
+) -> np.ndarray:
+  if pair_count == 0:
+    return np.empty((0, 2), dtype = int)
+
+  return np.random.choice(
+    population_size,
+    size = (pair_count, 2),
+    p = probabilities
+  )
