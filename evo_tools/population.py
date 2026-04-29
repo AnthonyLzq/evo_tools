@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 from json import loads
 from random import random, sample
@@ -16,7 +15,8 @@ from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_individual, validate_mutation_method
 from evo_tools.phenotype import build_individual, decode_binary_segments, \
   validate_binaries_in_range
-from evo_tools.scoring import assign_scores, sort_population_by_score
+from evo_tools.scoring import assign_scores, population_fitness_average, \
+  population_score_stats, selection_strength, sort_population_by_score
 from evo_tools.selection import select_parents, validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -306,14 +306,17 @@ class Population():
     mutated_individuals = self._mutation(individuals, mutation_method)
     self._rank_population(mutated_individuals, minimize)
 
-    score_mean_before_selection, score_std_before_selection = self._current_population_score_stats()
+    score_mean_before_selection, score_std_before_selection = population_score_stats(
+      self._current_population
+    )
 
     self._update_current_population(
       self._compose_next_population(mutated_individuals, sample_size),
       minimize
     )
 
-    self._update_selection_strength(
+    self._selection_strength = selection_strength(
+      self._current_population,
       score_mean_before_selection,
       score_std_before_selection
     )
@@ -445,35 +448,6 @@ class Population():
       self._variables_array
     )
 
-  def _population_fitness_average(self) -> float:
-    return float(np.mean(
-      np.array(
-        [individual.get_fitness() for individual in self._current_population] # type: ignore
-      )
-    ))
-
-  def _current_population_score_stats(self) -> Tuple[float, float]:
-    current_population_scores = np.array(
-      [individual.get_score() for individual in self._current_population]
-    )
-
-    return (
-      float(np.mean(current_population_scores)),
-      float(np.std(current_population_scores))
-    )
-
-  def _update_selection_strength(
-    self,
-    score_mean_before_selection: float,
-    score_std_before_selection: float
-  ) -> None:
-    score_mean_after_selection, _ = self._current_population_score_stats()
-    self._selection_strength = (
-      float(abs(
-        (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
-      )) if score_std_before_selection > 0 else 0.0
-    )
-
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
@@ -557,7 +531,7 @@ class Population():
     self._rank_population(self._current_population, minimize)
     self._refresh_best_individual()
 
-    return 1, [], [self._population_fitness_average()]
+    return 1, [], [population_fitness_average(self._current_population)]
 
   def _run_canonical_iteration(
     self,
@@ -582,7 +556,7 @@ class Population():
       mutation_method
     )
     scores.append(self._best_individual.get_score())
-    fitness_avg_list.append(self._population_fitness_average())
+    fitness_avg_list.append(population_fitness_average(self._current_population))
 
   def canonical_algorithm(
     self,
