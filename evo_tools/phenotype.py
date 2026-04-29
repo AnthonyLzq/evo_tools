@@ -65,7 +65,7 @@ def build_individual(
     bits,
     numbers_repr,
     parsed_function,
-    variables_array.copy()
+    variables_array
   )
 
 def build_individual_if_valid(

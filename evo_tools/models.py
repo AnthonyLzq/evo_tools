@@ -1,4 +1,3 @@
-from functools import reduce
 from json import loads
 from typing import Dict, List, Tuple, Union
 
@@ -22,11 +21,13 @@ class Individual():
     self._gray = gray
     self._score = score
     self._objective_value: Union[float, None] = None
-    self._bits = bits
+    self._bits = bits.copy()
+    self._total_bits = sum(self._bits)
+    self._bits_repr = f'[{", ".join(str(bit) for bit in self._bits)}]'
     self._numbers = numbers
     self._numbers_array = loads(numbers)
     self._function = function
-    self._variables_array = variables_array
+    self._variables_array = variables_array.copy()
 
   def get_binary(self) -> str:
     return self._binary
@@ -41,7 +42,7 @@ class Individual():
     return self._bits.copy()
 
   def get_total_bits(self) -> int:
-    return reduce(lambda a, b: a + b, self._bits)
+    return self._total_bits
 
   def set_score(self, score: float) -> None:
     self._score = score
@@ -69,23 +70,12 @@ class Individual():
 
     return float(f)
 
-  def _str_bits(self, bits: List[int]) -> str:
-    result = '['
-
-    for i, bit in enumerate(bits):
-      if i != len(bits) - 1:
-        result += f'{bit}, '
-      else:
-        result += f'{bit}]'
-
-    return result
-
   def __str__(self) -> str:
     return f'{{ \
 "binary": "{self._binary}", \
 "gray": "{self._gray}", \
 "numbers": "{self._numbers}", \
-"bits": "{self._str_bits(self._bits)}", \
+"bits": "{self._bits_repr}", \
 "score": "{self._score}", \
 "fitness": "{self.get_fitness()}" \
 }}'
