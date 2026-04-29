@@ -369,14 +369,8 @@ class Population():
         print(f'  gens: {gens}')
         print(f'  fens: {fens}')
 
-      function: exp = self._parsed_function
-
       if len(gens) == len(fens):
-        # Evaluate the given function variable per variable
-        for i, v in enumerate(self._variables_array):
-          function = function.subs(v, fens[i])  # type: ignore
-
-        objective_value = float(function)
+        objective_value = float(self._evaluate_function(fens))
         function_evaluations.append(objective_value)
         individual.set_objective_value(objective_value)
 
@@ -462,14 +456,24 @@ class Population():
     if len(floats) == 0:
       raise Exception('Something went wrong')
 
-    function = self._parsed_function
+    function = self._evaluate_function(floats)
     solution: Dict[str, float] = {}
 
     for i, v in enumerate(self._variables_array):
-      function = function.subs(v, floats[i])
       solution[v] = floats[i]
 
     return solution, function
+
+  def _evaluate_function(
+    self,
+    values: List[float]
+  ) -> exp:
+    function = self._parsed_function
+
+    for i, variable in enumerate(self._variables_array):
+      function = function.subs(variable, values[i])
+
+    return function
 
   def _print_iteration_summary(
     self,
