@@ -105,6 +105,61 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
 
   assert probabilities_by_objective[0][1] < probabilities_by_objective[1][1] < probabilities_by_objective[2][1]
 
+def test_roulette_selection_drops_duplicate_and_self_pairs() -> None:
+  population = build_population((0, 11), 1)
+  current_population = population._current_population.copy()
+  rank_current_population(population, False)
+  expected_pairs = {
+    (
+      current_population[10].get_fitness(),
+      current_population[11].get_fitness()
+    ),
+    (
+      current_population[2].get_fitness(),
+      current_population[10].get_fitness()
+    )
+  }
+
+  with patch(
+    'evo_tools.selection.np.random.choice',
+    return_value = np.array([[10, 11], [10, 11], [11, 11], [2, 10]])
+  ):
+    parents = select_parents_by_roulette(population._current_population, 4)
+
+  assert {
+    (first.get_fitness(), second.get_fitness())
+    for first, second in parents
+  } == expected_pairs
+
+def test_fitness_proportionate_selection_drops_duplicate_and_self_pairs() -> None:
+  population = build_population((0, 11), 1)
+  current_population = population._current_population.copy()
+  rank_current_population(population, False)
+  expected_pairs = {
+    (
+      current_population[10].get_fitness(),
+      current_population[11].get_fitness()
+    ),
+    (
+      current_population[2].get_fitness(),
+      current_population[10].get_fitness()
+    )
+  }
+
+  with patch(
+    'evo_tools.selection.np.random.choice',
+    return_value = np.array([[10, 11], [10, 11], [11, 11], [2, 10]])
+  ):
+    parents = select_parents_by_fitness_proportionate(
+      population._current_population,
+      4
+    )
+
+  assert {
+    (first.get_fitness(), second.get_fitness())
+    for first, second in parents
+  } == expected_pairs
+
 def test_tournament_selection_uses_raw_objective_values() -> None:
   population = build_population((-2, 1), 1)
   current_population = population._current_population.copy()

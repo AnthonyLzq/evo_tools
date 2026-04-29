@@ -45,93 +45,76 @@ def select_parents(
   except KeyError as exc:
     raise Exception('Parent selection method not allowed') from exc
 
+def _unique_parent_indexes(
+  random_parents_indexes_chosen: np.ndarray
+) -> List[Tuple[int, int]]:
+  return [
+    (i_1, i_2)
+    for i_1, i_2 in np.unique(
+      random_parents_indexes_chosen,
+      axis = 0
+    ).tolist()
+    if i_1 != i_2
+  ]
+
+def _build_parent_pairs(
+  population: List[Individual],
+  parent_indexes: List[Tuple[int, int]]
+) -> List[Tuple[Individual, Individual]]:
+  return [
+    (population[i_1], population[i_2])
+    for i_1, i_2 in parent_indexes
+  ]
+
+def _select_parents_by_probabilities(
+  population: List[Individual],
+  seed: float,
+  probabilities: np.ndarray
+) -> List[Tuple[Individual, Individual]]:
+  random_parents_indexes_chosen = np.random.choice(
+    len(population),
+    size = (round(seed), 2),
+    p = probabilities
+  )
+
+  return _build_parent_pairs(
+    population,
+    _unique_parent_indexes(random_parents_indexes_chosen)
+  )
+
 def select_parents_by_fitness_proportionate(
   population: List[Individual],
   seed: float
 ) -> List[Tuple[Individual, Individual]]:
-  total_population = len(population)
   parents_candidates = np.array(population)
   generation_scores = np.array(
     [individual.get_score() for individual in parents_candidates]
   )
   generation_score = sum(generation_scores)
-  random_parents_indexes_chosen = np.random.choice(
-    total_population,
-    size = (round(seed), 2),
-    p = np.array(
+
+  return _select_parents_by_probabilities(
+    population,
+    seed,
+    np.array(
       [x + generation_score / 2 for x in generation_scores]
     ) / (generation_score + generation_score / 2 * len(generation_scores))
   )
-  unique_random_parents_indexes_chosen, _ = np.unique(
-    [
-      str(
-        np.ndarray.tolist(index)
-      )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
-    ],
-    return_index = True
-  )
-  final_parents_indexes = list(
-    filter(
-      lambda a: a[0] != a[1],
-      map(
-        lambda e: [int(i) for i in e.split(',')],
-        unique_random_parents_indexes_chosen
-      )
-    )
-  )
-  parents: List[Tuple[Individual, Individual]] = []
-
-  for indexes in final_parents_indexes:
-    i_1, i_2 = indexes
-    parents.append((
-      population[i_1],
-      population[i_2]
-    ))
-
-  return parents
 
 def select_parents_by_roulette(
   population: List[Individual],
   seed: float
 ) -> List[Tuple[Individual, Individual]]:
-  total_population = len(population)
   parents_candidates = np.array(population)
   generation_scores = np.array(
     [individual.get_score() for individual in parents_candidates]
   )
   generation_score = sum(generation_scores)
-  random_parents_indexes_chosen = np.random.choice(
-    total_population,
-    size = (round(seed), 2),
-    p = generation_scores / generation_score
-  )
-  unique_random_parents_indexes_chosen, _ = np.unique(
-    [
-      str(
-        np.ndarray.tolist(index)
-      )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
-    ],
-    return_index = True
-  )
-  final_parents_indexes = list(
-    filter(
-      lambda a: a[0] != a[1],
-      map(
-        lambda e: [int(i) for i in e.split(',')],
-        unique_random_parents_indexes_chosen
-      )
-    )
-  )
-  parents: List[Tuple[Individual, Individual]] = []
 
-  for indexes in final_parents_indexes:
-    i_1, i_2 = indexes
-    parents.append((
-      population[i_1],
-      population[i_2]
-    ))
-
-  return parents
+  return _select_parents_by_probabilities(
+    population,
+    seed,
+    generation_scores / generation_score
+  )
 
 def select_parents_by_tournament(
   population: List[Individual],
