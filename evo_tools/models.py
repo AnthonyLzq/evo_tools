@@ -1,5 +1,5 @@
 from json import loads
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 from evo_tools.bin_gray import get_binary_from_custom_representation
 
@@ -12,7 +12,7 @@ class Individual():
     binary: str,
     gray: str,
     score: float,
-    bits: List[int],
+    bits: Sequence[int],
     numbers: str,
     function,
     variables_array: List[str]
@@ -21,7 +21,7 @@ class Individual():
     self._gray = gray
     self._score = score
     self._objective_value: Union[float, None] = None
-    self._bits = bits.copy()
+    self._bits = tuple(bits)
     self._total_bits = sum(self._bits)
     self._bits_repr = f'[{", ".join(str(bit) for bit in self._bits)}]'
     self._numbers = numbers
@@ -39,7 +39,10 @@ class Individual():
     return float(self._score)
 
   def get_bits(self) -> List[int]:
-    return self._bits.copy()
+    return list(self._bits)
+
+  def get_bits_tuple(self) -> Tuple[int, ...]:
+    return self._bits
 
   def get_total_bits(self) -> int:
     return self._total_bits

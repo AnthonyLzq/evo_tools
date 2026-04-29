@@ -36,6 +36,7 @@ def test_individual_caches_bits_metadata_and_owns_input_lists() -> None:
   variables[0] = 'changed'
 
   assert individual.get_bits() == [1, 2, 3]
+  assert individual.get_bits_tuple() == (1, 2, 3)
   assert individual.get_total_bits() == 6
   assert '"bits": "[1, 2, 3]"' in str(individual)
   assert individual.get_fitness() == 6.0

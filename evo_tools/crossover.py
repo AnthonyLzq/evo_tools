@@ -16,7 +16,7 @@ CROSSOVER_METHODS = (
 def _build_valid_children(
   binary_children: List[str],
   gray_children: List[str],
-  bits: List[int],
+  bits: Tuple[int, ...],
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
@@ -52,7 +52,7 @@ def crossover_one_point(
     return []
 
   total_bits = parents[0][0].get_total_bits()
-  bits = parents[0][0].get_bits()
+  bits = parents[0][0].get_bits_tuple()
   children: List[Individual] = []
 
   for parent in parents:
@@ -112,7 +112,7 @@ def crossover_two_points(
     return []
 
   total_bits = parents[0][0].get_total_bits()
-  bits = parents[0][0].get_bits()
+  bits = parents[0][0].get_bits_tuple()
   children: List[Individual] = []
 
   for parent in parents:
@@ -175,7 +175,7 @@ def crossover_uniform(
     return []
 
   total_bits = parents[0][0].get_total_bits()
-  bits = parents[0][0].get_bits()
+  bits = parents[0][0].get_bits_tuple()
   children: List[Individual] = []
 
   for parent in parents:

@@ -44,7 +44,7 @@ def mutate_individual(
   variables_array: List[str]
 ) -> Union[Individual, None]:
   attempts = 0
-  bits = child.get_bits()
+  bits = child.get_bits_tuple()
   total_bits = child.get_total_bits()
 
   while True:

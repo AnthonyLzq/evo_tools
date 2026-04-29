@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 from sympy import exp
 
@@ -31,7 +31,7 @@ def _numbers_repr_from_decoded_strings(decoded_strings: List[str]) -> str:
 
 def chromosome_to_numbers_repr(
   binary_or_gray: str,
-  bits: List[int],
+  bits: Sequence[int],
   sub_populations: List[SubPopulation],
   precision: Union[float, int]
 ) -> str:
@@ -43,7 +43,7 @@ def chromosome_to_numbers_repr(
 def build_individual(
   binary: str,
   gray: str,
-  bits: List[int],
+  bits: Sequence[int],
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
@@ -71,7 +71,7 @@ def build_individual(
 def build_individual_if_valid(
   binary: str,
   gray: str,
-  bits: List[int],
+  bits: Sequence[int],
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
   parsed_function,
@@ -106,7 +106,7 @@ def decode_individual(
 ) -> Tuple[List[str], List[float]]:
   binaries = sub_strings_by_array(
     individual.get_binary(),
-    individual.get_bits()
+    individual.get_bits_tuple()
   )
   try:
     _, decoded_numbers = decode_binary_segments(
