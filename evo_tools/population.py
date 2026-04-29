@@ -3,15 +3,13 @@ from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
 
-from evo_tools.crossover import validate_crossover_method
+from evo_tools.canonical import finalize_canonical_result, \
+  validate_canonical_methods
 from evo_tools.domain import build_sub_populations, resolve_max_sample_size, \
   validate_variable_count
 from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.mutation import validate_mutation_method
-from evo_tools.phenotype import build_solution, decode_individual
-from evo_tools.reporting import print_final_summary, print_iteration_summary
-from evo_tools.selection import validate_parent_selection_method
+from evo_tools.reporting import print_iteration_summary
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -193,9 +191,11 @@ class Population():
       the solution for each given variable, the result calculated for the
       obtained solution and the average of the fitness per each generation.
     """
-    validate_parent_selection_method(PARENT_SELECTION_METHOD)
-    validate_crossover_method(CROSSOVER_METHOD)
-    validate_mutation_method(MUTATION_METHOD)
+    validate_canonical_methods(
+      PARENT_SELECTION_METHOD,
+      CROSSOVER_METHOD,
+      MUTATION_METHOD
+    )
 
     start = time()
     self._initial_population, self._current_population, self._best_individual, \
@@ -257,25 +257,16 @@ class Population():
           self._current_population
         )
 
-    _, floats = decode_individual(
+    solution, function = finalize_canonical_result(
       self._best_individual,
       self._sub_populations,
-      self._precision
-    )
-    solution, function = build_solution(
-      floats,
+      self._precision,
       self._parsed_function,
-      self._variables_array
+      self._variables_array,
+      current_iteration,
+      self._selection_strength,
+      fitness_avg_list,
+      PRINT
     )
-
-    if PRINT:
-      print_final_summary(
-        current_iteration,
-        self._best_individual,
-        self._selection_strength,
-        fitness_avg_list,
-        solution,
-        function
-      )
 
     return scores, solution, function, fitness_avg_list
