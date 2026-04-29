@@ -49,7 +49,7 @@ def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
 
     return np.array([[0, 1]])
 
-  with patch('evo_tools.population.np.random.choice', side_effect = fake_choice):
+  with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
     population._parents_selection_by_roulette(1)
 
   probabilities_by_objective = sorted(
@@ -70,7 +70,7 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
 
     return np.array([[0, 1]])
 
-  with patch('evo_tools.population.np.random.choice', side_effect = fake_choice):
+  with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
     population._parents_selection_by_fitness_proportionate(1)
 
   probabilities_by_objective = sorted(

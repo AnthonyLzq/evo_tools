@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 from json import loads
-from random import choice, sample, random
+from random import choice, random, sample
 from math import log
-from functools import reduce
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
@@ -14,140 +13,13 @@ from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
 from evo_tools.helpers import sub_strings_by_array
+from evo_tools.models import Individual, SubPopulation
+from evo_tools.selection import select_parents_by_fitness_proportionate, \
+  select_parents_by_roulette, select_parents_by_tournament
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
 # MutationMethods = Literal['one_point', 'two_points', 'flipping']
-
-class Individual():
-  """
-  A member of a population.
-  """
-  def __init__(
-    self,
-    binary: str,
-    gray: str,
-    score: float,
-    bits: List[int],
-    numbers: str,
-    function,
-    variables_array: List[str]
-  ) -> None:
-    self._binary = binary
-    self._gray = gray
-    self._score = score
-    self._objective_value: Union[float, None] = None
-    self._bits = bits
-    self._numbers = numbers
-    self._function = function
-    self._variables_array = variables_array
-
-  def get_binary(self) -> str:
-    return self._binary
-
-  def get_gray(self) -> str:
-    return self._gray
-
-  def get_score(self) -> float:
-    return float(self._score)
-
-  def get_bits(self) -> List[int]:
-    return self._bits.copy()
-
-  def get_total_bits(self) -> int:
-    return reduce(lambda a, b: a + b, self._bits)
-
-  def set_score(self, score: float) -> None:
-    self._score = score
-
-  def set_objective_value(self, objective_value: Union[float, None]) -> None:
-    self._objective_value = objective_value
-
-  def get_objective_value(self) -> float:
-    if self._objective_value is None:
-      raise Exception('Objective value has not been calculated')
-
-    return self._objective_value
-
-  def get_numbers(self) -> str:
-    return self._numbers
-
-  def get_fitness(self):
-    if self._objective_value is not None:
-      return self._objective_value
-
-    numbers = loads(self._numbers)
-    f = self._function.copy()
-
-    for i, n in enumerate(numbers):
-      f = f.subs(self._variables_array[i], n)
-
-    return float(f)
-
-  def _str_bits(self, bits: List[int]) -> str:
-    result = '['
-
-    for i, bit in enumerate(bits):
-      if i != len(bits) - 1:
-        result += f'{bit}, '
-      else:
-        result += f'{bit}]'
-
-    return result
-
-  def __str__(self) -> str:
-    return f'{{ \
-"binary": "{self._binary}", \
-"gray": "{self._gray}", \
-"numbers": "{self._numbers}", \
-"bits": "{self._str_bits(self._bits)}", \
-"score": "{self._score}", \
-"fitness": "{self.get_fitness()}" \
-}}'
-
-  def __repr__(self) -> str:
-    return str(self)
-
-class SubPopulation():
-  """
-  A class to represent a SubPopulation
-  --
-
-  A SubPopulation is nothing but a object that represents a real range (float interval).
-  So, a Population is build with several ranges, with its representation in binary
-  and gray code and the number of bits that are used to represent the range.
-
-  For example, lets say you want to create a Population of one range: [1, 2],
-  with a precision of 0.1, then we will only have an array of SubPopulation,
-  whose len will be one, and that only member will store its class attributes as follows:
-
-  Attributes
-  --
-
-  rng: Tuple[Union[float, int], Union[float, int]]
-    The range specified for this SubPopulation, for this case (1, 2)
-
-  numbers: List[str]
-
-  bits: int
-    Number of bits used for represent the float value.
-  """
-  def __init__(
-    self,
-    rng: Tuple[Union[float, int], Union[float, int]],
-    numbers: List[str],
-    bits: int,
-  ) -> None:
-    self.rng = rng
-    self.numbers = numbers
-    self.bits = bits
-    self.numbers_dict: Dict[str, str] = {}
-
-    for n in self.numbers:
-      self.numbers_dict[get_binary_from_custom_representation(n)] = n
-
-  def __str__(self) -> str:
-    return f'{{ "rng": {self.rng}, "numbers": {self.numbers}, "bits": {self.bits} }}'
 
 class Population():
   """
@@ -400,8 +272,8 @@ class Population():
     current_population_score = np.array([
       x.get_score() for x in self._current_population
     ])
-    score_std_before_selection = np.std(current_population_score)
-    score_mean_before_selection = np.mean(current_population_score)
+    score_std_before_selection = float(np.std(current_population_score))
+    score_mean_before_selection = float(np.mean(current_population_score))
 
     self._update_current_population(
       self._current_population[
@@ -414,10 +286,12 @@ class Population():
     current_population_score = np.array([
       x.get_score() for x in self._current_population
     ])
-    score_mean_after_selection = np.mean(current_population_score)
-    self._selection_strength = abs(
-      (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
-    ) if score_std_before_selection > 0 else 0
+    score_mean_after_selection = float(np.mean(current_population_score))
+    self._selection_strength = (
+      float(abs(
+        (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
+      )) if score_std_before_selection > 0 else 0.0
+    )
 
     self._best_individual = self._current_population[0]
 
@@ -450,115 +324,13 @@ class Population():
     self,
     seed: float
   ) -> List[Tuple[Individual, Individual]]:
-    """
-    Method that selects parents based on the following probability:
-      (own_score + K)/(generation_score + K*len(scores)).
-    Both parents have to be different from each other at least in one bit.
-
-    Args:
-      seed (float): value that will be rounded to int. This value will set the
-      maximum amount of parents to be generated.
-
-    Returns:
-      List[Tuple[Individual, Individual]]: list that contains a pair of
-      different parents.
-    """
-    total_population = len(self._current_population)
-    parents_candidates = np.array(self._current_population)
-    generation_scores = np.array(
-      [individual.get_score() for individual in parents_candidates]
-    )
-    generation_score = sum(generation_scores)
-    random_parents_indexes_chosen = np.random.choice(
-      total_population,
-      size = (round(seed), 2),
-      p = np.array(
-        [x + generation_score / 2 for x in generation_scores]
-      ) / (generation_score + generation_score / 2 * len(generation_scores))
-    )
-    unique_random_parents_indexes_chosen, _ = np.unique(
-      [
-        str(
-          np.ndarray.tolist(index)
-        )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
-      ],
-      return_index = True
-    )
-    final_parents_indexes = list(
-      filter(
-        lambda a: a[0] != a[1],
-        map(
-          lambda e: [int(i) for i in e.split(',')],
-          unique_random_parents_indexes_chosen
-        )
-      )
-    )
-    parents: List[Tuple[Individual, Individual]] = []
-
-    for indexes in final_parents_indexes:
-      i_1, i_2 = indexes
-      parents.append((
-        self._current_population[i_1],
-        self._current_population[i_2]
-      ))
-
-    return parents
+    return select_parents_by_fitness_proportionate(self._current_population, seed)
 
   def _parents_selection_by_roulette(
     self,
     seed: float
   ):
-    """
-    Method that selects parents based in the following probability:
-      own_score/generation_score.
-    Both parents have to be different from each other at least in one bit.
-
-    Args:
-      seed (float): value that will be rounded to int. This value will set the
-      maximum amount of parents to be generated.
-
-    Returns:
-      List[Tuple[Individual, Individual]]: list that contains a pair of
-      different parents.
-    """
-    total_population = len(self._current_population)
-    parents_candidates = np.array(self._current_population)
-    generation_scores = np.array(
-      [individual.get_score() for individual in parents_candidates]
-    )
-    generation_score = sum(generation_scores)
-    random_parents_indexes_chosen = np.random.choice(
-      total_population,
-      size = (round(seed), 2),
-      p = generation_scores / generation_score
-    )
-    unique_random_parents_indexes_chosen, _ = np.unique(
-      [
-        str(
-          np.ndarray.tolist(index)
-        )[1:-1].replace(' ', '') for index in random_parents_indexes_chosen
-      ],
-      return_index = True
-    )
-    final_parents_indexes = list(
-      filter(
-        lambda a: a[0] != a[1],
-        map(
-          lambda e: [int(i) for i in e.split(',')],
-          unique_random_parents_indexes_chosen
-        )
-      )
-    )
-    parents: List[Tuple[Individual, Individual]] = []
-
-    for indexes in final_parents_indexes:
-      i_1, i_2 = indexes
-      parents.append((
-        self._current_population[i_1],
-        self._current_population[i_2]
-      ))
-
-    return parents
+    return select_parents_by_roulette(self._current_population, seed)
 
   def _parents_selection_by_tournament(
     self,
@@ -566,25 +338,7 @@ class Population():
     K: int,
     minimize: bool
   ):
-    parents: List[Tuple[Individual, Individual]] = []
-
-    while len(parents) < seed:
-      chosen_list: List[Individual] = []
-
-      for _ in range(2):
-        candidates = sample(self._current_population, min(K, len(self._current_population)))
-        chosen = min(
-          candidates,
-          key = lambda individual: individual.get_fitness()
-        ) if minimize else max(
-          candidates,
-          key = lambda individual: individual.get_fitness()
-        )
-        chosen_list.append(chosen)
-
-      parents.append((chosen_list[0], chosen_list[1]))
-
-    return parents
+    return select_parents_by_tournament(self._current_population, seed, K, minimize)
 
   def _crossover_one_point(
     self,
@@ -893,7 +647,7 @@ class Population():
           bits = child.get_bits()
           gray = format_to_n_bits(
             binary_to_gray(binary),
-            reduce(lambda a, b: a + b, bits)
+            sum(bits)
           )
           binaries_to_validate = [
             sub_strings_by_array(binary, bits),

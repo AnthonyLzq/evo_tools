@@ -14,6 +14,6 @@ from evo_tools.bin_gray import get_float_from_custom_representation
 from evo_tools.bin_gray import get_binary_from_custom_representation
 from evo_tools.bin_gray import get_gray_from_custom_representation
 from evo_tools.helpers import sub_strings_by_array
-from evo_tools.population import Individual
-from evo_tools.population import SubPopulation
+from evo_tools.models import Individual
+from evo_tools.models import SubPopulation
 from evo_tools.population import Population
