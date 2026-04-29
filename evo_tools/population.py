@@ -36,6 +36,7 @@ class Individual():
     self._binary = binary
     self._gray = gray
     self._score = score
+    self._objective_value: Union[float, None] = None
     self._bits = bits
     self._numbers = numbers
     self._function = function
@@ -59,17 +60,29 @@ class Individual():
   def set_score(self, score: float) -> None:
     self._score = score
 
+  def set_objective_value(self, objective_value: Union[float, None]) -> None:
+    self._objective_value = objective_value
+
+  def get_objective_value(self) -> float:
+    if self._objective_value is None:
+      raise Exception('Objective value has not been calculated')
+
+    return self._objective_value
+
   def get_numbers(self) -> str:
     return self._numbers
 
   def get_fitness(self):
+    if self._objective_value is not None:
+      return self._objective_value
+
     numbers = loads(self._numbers)
     f = self._function.copy()
 
     for i, n in enumerate(numbers):
       f = f.subs(self._variables_array[i], n)
 
-    return f
+    return float(f)
 
   def _str_bits(self, bits: List[int]) -> str:
     result = '['
@@ -366,14 +379,11 @@ class Population():
     """
     if (len(new_population) > self._sample_size):
       self._current_population = new_population[:self._sample_size]
-      self._current_population.sort(reverse = minimize, key = lambda x: x.get_score())
-      self._fitness(self._current_population)
+    else:
+      self._current_population = new_population
 
-      return
-
-    self._current_population = new_population
-    self._current_population.sort(reverse = minimize, key = lambda x: x.get_score())
-    self._fitness(self._current_population)
+    self._fitness(self._current_population, minimize)
+    self._sort_population_by_score(self._current_population)
 
   def _select(
     self,
@@ -383,8 +393,8 @@ class Population():
     mutation_method: str
   ) -> None:
     mutated_individuals = self._mutation(individuals, mutation_method)
-    self._fitness(mutated_individuals)
-    mutated_individuals.sort(reverse = minimize, key = lambda x: x.get_score())
+    self._fitness(mutated_individuals, minimize)
+    self._sort_population_by_score(mutated_individuals)
 
     # Calculate the mean and std of the population before the selection
     current_population_score = np.array([
@@ -562,17 +572,17 @@ class Population():
       chosen_list: List[Individual] = []
 
       for _ in range(2):
-        candidates = sample(self._current_population, K)
+        candidates = sample(self._current_population, min(K, len(self._current_population)))
         chosen = min(
           candidates,
-          key = lambda individual: abs(individual.get_fitness())
+          key = lambda individual: individual.get_fitness()
         ) if minimize else max(
           candidates,
-          key = lambda individual: abs(individual.get_fitness())
+          key = lambda individual: individual.get_fitness()
         )
         chosen_list.append(chosen)
 
-      parents.append(tuple(chosen_list))
+      parents.append((chosen_list[0], chosen_list[1]))
 
     return parents
 
@@ -921,7 +931,7 @@ class Population():
 
     return mutated_children
 
-  def _fitness(self, population_sample: List[Individual]) -> None:
+  def _fitness(self, population_sample: List[Individual], minimize: bool) -> None:
     """
     Method that calculates the genotype fitness of a given function for the
     current population.
@@ -938,9 +948,11 @@ class Population():
       return
 
     bits = population_sample[0].get_bits()
-    function_evaluations = []
+    function_evaluations: List[float] = []
 
     for i, individual in enumerate(population_sample):
+      individual.set_score(0)
+      individual.set_objective_value(None)
       chromosome = individual.get_binary()
 
       if (self._print):
@@ -974,34 +986,34 @@ class Population():
         for i, v in enumerate(variables_array):
           function = function.subs(v, fens[i])  # type: ignore
 
-        function_evaluations.append(function)  # type: ignore
+        objective_value = float(function)
+        function_evaluations.append(objective_value)
+        individual.set_objective_value(objective_value)
 
         if self._print:
-          print(f'  fitness: {function}\n')
-      else:
-        function_evaluations.append('Fail')
+          print(f'  fitness: {objective_value}\n')
+      elif self._print:
+        print(f'  fitness: Fail\n')
 
-        if self._print:
-          print(f'  fitness: Fail\n')
+    valid_population_sample = [
+      individual for individual in population_sample if individual._objective_value is not None
+    ]
 
-    final_function_evaluations = []
-    final_population_sample = []
-
-    for i, fe in enumerate(function_evaluations):
-      if fe != 'Fail':
-        final_function_evaluations.append(fe)
-        final_population_sample.append(population_sample[i])
-
-    population_sample = final_population_sample
-
-    if len(final_function_evaluations) == 0:
+    if len(function_evaluations) == 0:
       return
 
-    maxi = max([e for e in final_function_evaluations])
+    reference_value = max(function_evaluations) if minimize else min(function_evaluations)
 
-    for i, e in enumerate(final_function_evaluations):
-      score = 1e-3 + maxi - e
-      population_sample[i].set_score(score)
+    for i, objective_value in enumerate(function_evaluations):
+      score = (
+        1e-3 + reference_value - objective_value
+        if minimize else
+        1e-3 + objective_value - reference_value
+      )
+      valid_population_sample[i].set_score(score)
+
+  def _sort_population_by_score(self, population_sample: List[Individual]) -> None:
+    population_sample.sort(reverse = True, key = lambda x: x.get_score())
 
   def _generate_parents_using_a_method(
     self,
@@ -1162,11 +1174,8 @@ class Population():
 
     self._select_initial_population()
     start = time()
-    self._fitness(self._current_population)
-    self._current_population.sort(
-      reverse = MINIMIZE,
-      key = lambda x: x.get_score()
-    )
+    self._fitness(self._current_population, MINIMIZE)
+    self._sort_population_by_score(self._current_population)
     self._best_individual = self._current_population[0]
     current_iteration = 1
     scores: List[float] = []
@@ -1217,9 +1226,6 @@ class Population():
       end = time()
 
       if self._selection_strength <= 1e-4:
-        break
-
-      if round(self._best_individual.get_score(), 3) <= 1e-4:
         break
 
       if PRINT:
