@@ -226,14 +226,8 @@ def apply_crossover(
   parsed_function,
   variables_array: List[str]
 ) -> List[Individual]:
-  crossover_functions = {
-    CROSSOVER_METHODS[0]: crossover_one_point,
-    CROSSOVER_METHODS[1]: crossover_two_points,
-    CROSSOVER_METHODS[2]: crossover_uniform
-  }
-
-  try:
-    return crossover_functions[crossover_method](
+  if crossover_method == CROSSOVER_METHODS[0]:
+    return crossover_one_point(
       parents,
       crossover_rate,
       sub_populations,
@@ -241,8 +235,28 @@ def apply_crossover(
       parsed_function,
       variables_array
     )
-  except KeyError as exc:
-    raise Exception('Crossover method not allowed') from exc
+
+  if crossover_method == CROSSOVER_METHODS[1]:
+    return crossover_two_points(
+      parents,
+      crossover_rate,
+      sub_populations,
+      precision,
+      parsed_function,
+      variables_array
+    )
+
+  if crossover_method == CROSSOVER_METHODS[2]:
+    return crossover_uniform(
+      parents,
+      crossover_rate,
+      sub_populations,
+      precision,
+      parsed_function,
+      variables_array
+    )
+
+  raise Exception('Crossover method not allowed')
 
 def generate_children(
   population: List[Individual],

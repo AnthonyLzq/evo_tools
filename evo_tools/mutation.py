@@ -17,16 +17,16 @@ def apply_mutation(
   mutation_method: str,
   binary_or_gray: str
 ) -> str:
-  mutation_functions = {
-    MUTATION_METHODS[0]: lambda: mutate_n_bits_from_binary_or_gray(binary_or_gray),
-    MUTATION_METHODS[1]: lambda: mutate_n_bits_from_binary_or_gray(binary_or_gray, 2),
-    MUTATION_METHODS[2]: lambda: mutation_binary_or_gray_by_flipping(binary_or_gray)
-  }
+  if mutation_method == MUTATION_METHODS[0]:
+    return mutate_n_bits_from_binary_or_gray(binary_or_gray)
 
-  try:
-    return mutation_functions[mutation_method]()
-  except KeyError as exc:
-    raise Exception('Mutation method not allowed') from exc
+  if mutation_method == MUTATION_METHODS[1]:
+    return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
+
+  if mutation_method == MUTATION_METHODS[2]:
+    return mutation_binary_or_gray_by_flipping(binary_or_gray)
+
+  raise Exception('Mutation method not allowed')
 
 def validate_mutation_method(mutation_method: str) -> None:
   if mutation_method in MUTATION_METHODS:

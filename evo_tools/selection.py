@@ -23,27 +23,16 @@ def select_parents(
   parent_selection_method: str,
   minimize: bool
 ) -> List[Tuple[Individual, Individual]]:
-  parent_selection_strategies = {
-    PARENT_SELECTION_METHODS[0]: lambda: select_parents_by_fitness_proportionate(
-      population,
-      seed
-    ),
-    PARENT_SELECTION_METHODS[1]: lambda: select_parents_by_roulette(
-      population,
-      seed
-    ),
-    PARENT_SELECTION_METHODS[2]: lambda: select_parents_by_tournament(
-      population,
-      seed,
-      10,
-      minimize
-    )
-  }
+  if parent_selection_method == PARENT_SELECTION_METHODS[0]:
+    return select_parents_by_fitness_proportionate(population, seed)
 
-  try:
-    return parent_selection_strategies[parent_selection_method]()
-  except KeyError as exc:
-    raise Exception('Parent selection method not allowed') from exc
+  if parent_selection_method == PARENT_SELECTION_METHODS[1]:
+    return select_parents_by_roulette(population, seed)
+
+  if parent_selection_method == PARENT_SELECTION_METHODS[2]:
+    return select_parents_by_tournament(population, seed, 10, minimize)
+
+  raise Exception('Parent selection method not allowed')
 
 def _unique_parent_indexes(
   random_parents_indexes_chosen: np.ndarray
