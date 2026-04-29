@@ -1,14 +1,22 @@
-from json import loads
 from typing import Dict, List
-
-import pandas as pd
 
 from evo_tools.models import Individual
 
 
+def _format_population(individuals: List[Individual]) -> str:
+  return '\n'.join(
+    [
+      f'  {index}. binary={individual.get_binary()} gray={individual.get_gray()} '
+      f'numbers={individual.get_numbers()} bits={individual.get_bits()} '
+      f'score={individual.get_score()} fitness={individual.get_fitness()}'
+      for index, individual in enumerate(individuals, start = 1)
+    ]
+  )
+
+
 def print_initial_population(initial_population: List[Individual]) -> None:
   print('\nInitial population:\n')
-  print(initial_population)
+  print(_format_population(initial_population))
   print()
 
 
@@ -22,8 +30,7 @@ def print_iteration_summary(
   print(
     f'\n{current_iteration}º iteration.\nBest individual: {best_individual}.\nSelection strength: {selection_strength}.\nTime elapsed: {elapsed_time}s.'
   )
-  df = pd.DataFrame(loads(str(current_population)))
-  print(df, end = '\n\n')
+  print(_format_population(current_population), end = '\n\n')
 
 def print_final_summary(
   current_iteration: int,
