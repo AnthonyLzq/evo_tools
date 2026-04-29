@@ -418,27 +418,15 @@ class Population():
 
     return objective_value
 
-  def _select_parents(
-    self,
-    seed: float,
-    parent_selection_method,
-    minimize: bool
-  ):
-    return select_parents(
-      self._current_population,
-      seed,
-      parent_selection_method,
-      minimize
-    )
-
-  def _do_crossover_using_a_method(
+  def _generate_children(
     self,
     seed: float,
     crossover_method,
     parent_selection_method,
     minimize: bool
   ):
-    parents = self._select_parents(
+    parents = select_parents(
+      self._current_population,
       seed,
       parent_selection_method,
       minimize
@@ -581,7 +569,7 @@ class Population():
     scores: List[float],
     fitness_avg_list: List[float]
   ) -> None:
-    children = self._do_crossover_using_a_method(
+    children = self._generate_children(
       self._sample_size * seed,
       crossover_method,
       parent_selection_method,
