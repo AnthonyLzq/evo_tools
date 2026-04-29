@@ -8,12 +8,12 @@ from typing import Dict, List, Tuple, Union
 from time import time
 
 from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits, \
-  mutate_n_bits_from_binary_or_gray, range_of_numbers_binary_and_gray, \
-  generate_random_binary_with_a_len, mutation_binary_or_gray_by_flipping,\
+  range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
+from evo_tools.mutation import apply_mutation, validate_mutation_method
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
   select_parents_by_roulette, select_parents_by_tournament
 
@@ -640,7 +640,7 @@ class Population():
           print(f'  Mutation for child: {child}\n')
 
         while True:
-          binary = self._do_mutation_using_a_method(
+          binary = apply_mutation(
             mutation_method,
             child.get_binary()
           )
@@ -822,30 +822,11 @@ class Population():
 
     raise Exception('Crossover method not allowed')
 
-  def _do_mutation_using_a_method(
-    self,
-    mutation_method,
-    binary_or_gray: str
-  ):
-    if mutation_method == 'one_point':
-      return mutate_n_bits_from_binary_or_gray(binary_or_gray)
-
-    if mutation_method == 'two_points':
-      return mutate_n_bits_from_binary_or_gray(binary_or_gray, 2)
-
-    if mutation_method ==  'flipping':
-        return mutation_binary_or_gray_by_flipping(binary_or_gray)
-
-    raise Exception('Mutation method not allowed')
-
   def _validate_mutation_methods(
     self,
     mutation_method
   ):
-    if mutation_method in ['one_point', 'two_points', 'flipping']:
-      return
-
-    raise Exception('Mutation method not allowed')
+    validate_mutation_method(mutation_method)
 
   def _get_fen(self, binary_or_gray: str, bits: List[int]):
     binaries = sub_strings_by_array(
