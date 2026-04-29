@@ -10,11 +10,10 @@ from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
 from evo_tools.crossover import apply_crossover, validate_crossover_method
-from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_individual, validate_mutation_method
-from evo_tools.phenotype import build_individual, decode_binary_segments, \
-  validate_binaries_in_range
+from evo_tools.phenotype import build_individual, build_solution, \
+  decode_individual, evaluate_function
 from evo_tools.scoring import assign_scores, population_fitness_average, \
   population_score_stats, selection_strength, sort_population_by_score
 from evo_tools.selection import select_parents, validate_parent_selection_method
@@ -402,7 +401,11 @@ class Population():
     if (self._print):
       print(f'Chromosome {index}: {chromosome}')
 
-    gens, fens = self._decode_individual(individual)
+    gens, fens = decode_individual(
+      individual,
+      self._sub_populations,
+      self._precision
+    )
 
     if (self._print):
       print(f'  gens: {gens}')
@@ -414,7 +417,9 @@ class Population():
 
       return None
 
-    objective_value = float(self._evaluate_function(fens))
+    objective_value = float(
+      evaluate_function(self._parsed_function, self._variables_array, fens)
+    )
 
     if self._print:
       print(f'  fitness: {objective_value}\n')
@@ -450,51 +455,6 @@ class Population():
 
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
-
-  def _decode_individual(
-    self,
-    individual: Individual
-  ) -> Tuple[List[str], List[float]]:
-    gens = sub_strings_by_array(
-      individual.get_binary(),
-      individual.get_bits()
-    )
-    fens: List[float] = []
-
-    if validate_binaries_in_range([gens], self._sub_populations, self._precision):
-      _, fens = decode_binary_segments(
-        gens,
-        self._sub_populations,
-        self._precision
-      )
-
-    return gens, fens
-
-  def _build_solution(
-    self,
-    floats: List[float]
-  ) -> Tuple[Dict[str, float], exp]:
-    if len(floats) == 0:
-      raise Exception('Something went wrong')
-
-    function = self._evaluate_function(floats)
-    solution: Dict[str, float] = {}
-
-    for i, v in enumerate(self._variables_array):
-      solution[v] = floats[i]
-
-    return solution, function
-
-  def _evaluate_function(
-    self,
-    values: List[float]
-  ) -> exp:
-    function = self._parsed_function
-
-    for i, variable in enumerate(self._variables_array):
-      function = function.subs(variable, values[i])
-
-    return function
 
   def _print_iteration_summary(
     self,
@@ -647,8 +607,16 @@ class Population():
           end - start
         )
 
-    _, floats = self._decode_individual(self._best_individual)
-    solution, function = self._build_solution(floats)
+    _, floats = decode_individual(
+      self._best_individual,
+      self._sub_populations,
+      self._precision
+    )
+    solution, function = build_solution(
+      floats,
+      self._parsed_function,
+      self._variables_array
+    )
 
     if PRINT:
       self._print_final_summary(
