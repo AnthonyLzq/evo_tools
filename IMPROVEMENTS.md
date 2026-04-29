@@ -45,6 +45,12 @@ By the end of this roadmap, the project should meet the following goals:
 | 4 | Optimization | Lower per-iteration cost and less symbolic overhead |
 | 5 | Packaging, tests, and CI | Modern, distributable, contributor-friendly project |
 
+## Current roadmap status
+
+- **Phases 0-4 are complete**.
+- **Phase 5 is the active next step**.
+- The most important remaining work is packaging modernization (`pyproject.toml`), dependency cleanup, pytest configuration, and CI.
+
 ---
 
 ## Phase 0 - Hygiene and baseline
@@ -371,6 +377,10 @@ Split the genetic engine into smaller, more maintainable, more testable pieces.
 
 Reduce the per-iteration cost and the unnecessary overhead of the engine.
 
+### Status
+
+Completed.
+
 ### Issues identified
 
 - Too much expression reconstruction with `sympy`.
@@ -388,44 +398,55 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
 
 ### Step by step
 
-1. **Compile the objective function**
-   - Convert the expression into a numeric callable once.
-   - The natural option is `sympy.lambdify()`.
+1. **Compile the objective function** - completed
+    - Convert the expression into a numeric callable once.
+    - The natural option is `sympy.lambdify()`.
 
-2. **Avoid repeated reconstruction**
-   - Do not call `sympify(str(self._function))` per individual or per iteration.
-   - Prepare the function once when building the engine.
+2. **Avoid repeated reconstruction** - completed
+    - Do not call `sympify(str(self._function))` per individual or per iteration.
+    - Prepare the function once when building the engine.
 
-3. **Optimize population evaluation**
-   - If it makes sense, evaluate individuals with lighter numeric structures.
-   - Separate objective value computation from summary statistics computation.
+3. **Optimize population evaluation** - completed
+    - If it makes sense, evaluate individuals with lighter numeric structures.
+    - Separate objective value computation from summary statistics computation.
 
-4. **Reduce string churn**
-   - Move to lists, tuples, dataclasses, and controlled joins.
+4. **Reduce string churn** - completed
+    - Move to lists, tuples, dataclasses, and controlled joins.
 
-5. **Support binary combinatorial search**
-   - Keep `sample_size` independent from the smallest single-variable domain size.
-   - Allow high-dimensional binary problems even when each variable has only two states.
-   - Add a deterministic reference case for 0/1 knapsack to prove the engine can express and solve that class of problem.
+5. **Support binary combinatorial search** - completed
+    - Keep `sample_size` independent from the smallest single-variable domain size.
+    - Allow high-dimensional binary problems even when each variable has only two states.
+    - Add a deterministic reference case for 0/1 knapsack to prove the engine can express and solve that class of problem.
 
-6. **Optimize child validation**
-   - Revisit the crossover retry flow.
-   - Avoid loops where every attempt re-decodes everything from scratch unless it is truly needed.
+6. **Optimize child validation** - completed
+    - Revisit the crossover retry flow.
+    - Avoid loops where every attempt re-decodes everything from scratch unless it is truly needed.
 
-7. **Centralize RNG**
-   - Inject an explicit random generator.
-   - Do not mix `random` and `numpy.random` without control.
+7. **Centralize RNG** - completed
+    - Inject an explicit random generator.
+    - Do not mix `random` and `numpy.random` without control.
 
-8. **Review heavy dependencies**
-   - Confirm whether `pandas` is really needed as a runtime dependency.
-   - If it is only used for debug output, move it out of the runtime path or remove it.
+8. **Review heavy dependencies** - completed
+    - Confirm whether `pandas` is really needed as a runtime dependency.
+    - If it is only used for debug output, move it out of the runtime path or remove it.
+
+### What changed
+
+- Objective compilation now happens once through `lambdify()` and the compiled callable is reused across ranking and evaluation.
+- `Population` stopped reparsing expressions with `sympify(str(...))`; symbolic setup is now prepared once up front.
+- `Individual` instances cache parsed numbers, immutable bit metadata, total bit counts, string rendering, and objective values for reuse in hot paths.
+- Ranking, objective evaluation, canonical finalization, crossover, mutation, and initialization now reuse cached decoded data instead of repeatedly decoding and rebuilding the same values.
+- Initial binary population construction now samples with replacement when a single-variable domain is smaller than `sample_size`, which unblocks binary combinatorial search.
+- The project now has deterministic regression coverage for a representative 0/1 knapsack problem.
+- Runtime randomness was centralized behind `evo_tools.randomness.py` and is now backed by a shared NumPy `Generator`.
+- `pandas` was removed from the runtime path because reporting no longer depends on DataFrame construction.
 
 ### Acceptance criteria
 
-- Per-iteration evaluation is simpler.
-- The amount of repeated symbolic work is reduced.
-- Reproducibility improves after centralizing RNG.
-- The engine can run a representative binary 0/1 knapsack case without being blocked by the current per-variable domain-size limit.
+- Per-iteration evaluation is simpler. **Done**
+- The amount of repeated symbolic work is reduced. **Done**
+- Reproducibility improves after centralizing RNG. **Done**
+- The engine can run a representative binary 0/1 knapsack case without being blocked by the current per-variable domain-size limit. **Done**
 
 ### Risks / notes
 
@@ -533,30 +554,30 @@ Once correctness is stable, move on to **Phase 3** and perform the larger refact
 
 ## Step 5
 
-With a cleaner architecture, move on to **Phase 4** and optimize the engine.
+With a cleaner architecture, move on to **Phase 4** and optimize the engine. This is now complete.
 
 ## Step 6
 
-Close with **Phase 5** so packaging, tests, and CI are fully modernized.
+Close with **Phase 5** so packaging, tests, and CI are fully modernized. This is the current next step.
 
 ---
 
 ## Master checklist
 
-- [ ] Remove generated artifacts and harden `.gitignore`
-- [ ] Define a reproducible development baseline
-- [ ] Fix range discretization and bit sizing
-- [ ] Fix `binary_to_float()`
+- [x] Remove generated artifacts and harden `.gitignore`
+- [x] Define a reproducible development baseline
+- [x] Fix range discretization and bit sizing
+- [x] Fix `binary_to_float()`
 - [ ] Decide and document the discrete domain model
 - [ ] Fix multi-bit mutation
-- [ ] Fix scoring and selection for minimize / maximize
-- [ ] Remove `abs()` from tournament selection
+- [x] Fix scoring and selection for minimize / maximize
+- [x] Remove `abs()` from tournament selection
 - [ ] Fix stop conditions
-- [ ] Make algorithm tests deterministic
-- [ ] Split `population.py`
-- [ ] Replace serialized strings with typed structures
-- [ ] Compile the objective function and reduce symbolic overhead
-- [ ] Centralize RNG
+- [x] Make algorithm tests deterministic
+- [x] Split `population.py`
+- [x] Replace serialized strings with typed structures
+- [x] Compile the objective function and reduce symbolic overhead
+- [x] Centralize RNG
 - [ ] Migrate to `pyproject.toml`
 - [ ] Modernize pytest and test dependencies
 - [ ] Remove entry points that run tests
