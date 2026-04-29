@@ -7,14 +7,13 @@ from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
 
-from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits, \
-  range_of_numbers_binary_and_gray, \
+from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
 from evo_tools.crossover import crossover_one_point, crossover_two_points, crossover_uniform
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.mutation import apply_mutation, validate_mutation_method
+from evo_tools.mutation import mutate_individual, validate_mutation_method
 from evo_tools.phenotype import build_individual, decode_binary_segments, \
   validate_binaries_in_range
 from evo_tools.scoring import assign_scores, sort_population_by_score
@@ -312,54 +311,28 @@ class Population():
     mutated_children: List[Individual] = []
 
     for child in children:
-      mutated_children.append(child)
-      attempts = 0
+      mutated_child = child
 
       if random() < self._mutation_rate:
         if (self._print):
           print(f'  Mutation for child: {child}\n')
 
-        while True:
-          binary = apply_mutation(
-            mutation_method,
-            child.get_binary()
-          )
-          bits = child.get_bits()
-          gray = format_to_n_bits(
-            binary_to_gray(binary),
-            sum(bits)
-          )
-          binaries_to_validate = [
-            sub_strings_by_array(binary, bits),
-            sub_strings_by_array(gray, bits)
-          ]
-          are_binaries_valid = validate_binaries_in_range(
-            binaries_to_validate,
-            self._sub_populations,
-            self._precision
-          )
+        valid_mutation = mutate_individual(
+          child,
+          mutation_method,
+          self._sub_populations,
+          self._precision,
+          self._parsed_function,
+          self._variables_array
+        )
 
-          if are_binaries_valid:
-            mutated_child = build_individual(
-              binary,
-              gray,
-              bits,
-              self._sub_populations,
-              self._precision,
-              self._parsed_function,
-              self._variables_array
-            )
-            mutated_children.pop()
-            mutated_children.append(mutated_child)
+        if valid_mutation is not None:
+          mutated_child = valid_mutation
 
-            if (self._print):
-              print(f'  Mutation for child completed: {mutated_child}\n')
+          if (self._print):
+            print(f'  Mutation for child completed: {mutated_child}\n')
 
-            break
-          elif attempts > 5:
-            break
-
-          attempts += 1
+      mutated_children.append(mutated_child)
 
     if self._print:
       print(f'\nPopulation children after mutation: {mutated_children}\n')
