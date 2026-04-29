@@ -1,6 +1,6 @@
-from random import randint, sample
+from random import randint
 from math import log, log2
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 def binary_to_int(b: str) -> int:
   """
@@ -117,7 +117,7 @@ def number_of_bits_for_a_range(
 def range_of_numbers_binary_and_gray(
   rng: Tuple[Union[float, int], Union[float, int]],
   precision: Union[float, int],
-  population_sample = 80
+  population_sample: Optional[int] = None
 ) -> Tuple[List[str], int]:
   """
   Function to create a list of str which contains the three representation of
@@ -159,7 +159,19 @@ def range_of_numbers_binary_and_gray(
   n_decimal_digits = int(round(log(p10, 10)))
   bits = number_of_bits_for_a_range(rng, precision, False)
   numbers: List[str] = []
-  aux = sample(range(0, int(abs(xf - x0) * p10) + 1), population_sample)
+  total_numbers = int(abs(xf - x0) * p10) + 1
+  if population_sample is None:
+    aux = list(range(total_numbers))
+  else:
+    sample_size = min(population_sample, total_numbers)
+
+    if sample_size == 1:
+      aux = [0]
+    else:
+      aux = [
+        (i * (total_numbers - 1)) // (sample_size - 1)
+        for i in range(sample_size)
+      ]
 
   for i in aux:
     index = round(i / p10 + x0, n_decimal_digits)
@@ -195,31 +207,34 @@ def binary_to_float(
     str: the given range with the three possible representations ; separated in
     the following format: ['float;binary;gray'].
   """
-  try:
+  if b in numbers:
     return get_float_from_custom_representation(numbers[b])
-  except:
-    x0, xf = rng
 
-    if x0 >= xf:
-      raise Exception(f'Bad range, {xf} must be greater than {x0}.')
+  x0, xf = rng
 
-    if precision <= 0 or precision > 1:
-      raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
+  if x0 >= xf:
+    raise Exception(f'Bad range, {xf} must be greater than {x0}.')
 
-    p10 = 1 if precision == 1 else round(pow(precision, -1))
+  if precision <= 0 or precision > 1:
+    raise Exception('Precision can be only a positive decimal fraction between <0, 1].')
 
-    if p10 != 1 and p10 % 10 != 0:
-      raise Exception(f'Bad precision: {precision} should be a positive decimal fraction or 1.')
+  p10 = 1 if precision == 1 else round(pow(precision, -1))
 
-    n_decimal_digits = int(round(log(p10, 10)))
-    i = round((binary_to_int(b) + x0) / p10, n_decimal_digits)
+  if p10 != 1 and p10 % 10 != 0:
+    raise Exception(f'Bad precision: {precision} should be a positive decimal fraction or 1.')
 
-    if i < x0 or i > xf:
-      raise Exception(
-        f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
-      )
+  n_decimal_digits = int(round(log(p10, 10)))
+  max_index = int(abs(xf - x0) * p10)
+  integer_value = binary_to_int(b)
 
-    return f"{format(i, f'.{n_decimal_digits}f') if i != 0 else str(i * i) + str(0) * (n_decimal_digits - 1)}"
+  if integer_value < 0 or integer_value > max_index:
+    raise Exception(
+      f'Bad input: {b} is not in the discrete range: {rng} with precision: {precision}'
+    )
+
+  value = round(x0 + integer_value / p10, n_decimal_digits)
+
+  return f"{format(value, f'.{n_decimal_digits}f') if value != 0 else str(value * value) + str(0) * (n_decimal_digits - 1)}"
 
 def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """

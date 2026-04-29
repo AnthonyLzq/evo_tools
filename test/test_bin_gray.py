@@ -203,3 +203,33 @@ def test_range_of_numbers_binary_and_gray(
   len_numbers = int((xf - x0) / precision + 1)
 
   assert len_numbers == len(numbers) and bits == calculated_bits
+
+def test_range_of_numbers_binary_and_gray_clips_requested_sample_size() -> None:
+  numbers, _ = bin_gray.range_of_numbers_binary_and_gray((0, 5), 0.1, 80)
+
+  assert len(numbers) == 51
+
+def test_range_of_numbers_binary_and_gray_sampled_output_keeps_range_bounds() -> None:
+  numbers, _ = bin_gray.range_of_numbers_binary_and_gray((0, 5), 0.1, 5)
+
+  assert numbers[0].startswith('0.0;')
+  assert numbers[-1].startswith('5.0;')
+  assert len(numbers) == 5
+
+@pytest.mark.parametrize(
+  'binary, rng, precision, expected',
+  [
+    ('0', (-1, 4), 0.01, '-1.00'),
+    ('1', (-1, 4), 0.01, '-0.99'),
+    ('111110100', (-1, 4), 0.01, '4.00'),
+    ('0', (2, 7), 0.1, '2.0'),
+    ('1', (2, 7), 0.1, '2.1')
+  ]
+)
+def test_binary_to_float_without_lookup_table(
+  binary: str,
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  expected: str
+) -> None:
+  assert bin_gray.binary_to_float(binary, {}, rng, precision) == expected
