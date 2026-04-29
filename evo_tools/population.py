@@ -9,14 +9,14 @@ from time import time
 from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
-from evo_tools.crossover import apply_crossover, validate_crossover_method
+from evo_tools.crossover import generate_children, validate_crossover_method
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_children, validate_mutation_method
 from evo_tools.phenotype import build_individual, build_solution, \
   decode_individual, evaluate_individual_objective
 from evo_tools.scoring import assign_scores, population_fitness_average, \
   population_score_stats, selection_strength, sort_population_by_score
-from evo_tools.selection import select_parents, validate_parent_selection_method
+from evo_tools.selection import validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -367,33 +367,6 @@ class Population():
 
     assign_scores(population_sample, function_evaluations, minimize)
 
-  def _generate_children(
-    self,
-    seed: float,
-    crossover_method,
-    parent_selection_method,
-    minimize: bool
-  ):
-    parents = select_parents(
-      self._current_population,
-      seed,
-      parent_selection_method,
-      minimize
-    )
-
-    if len(parents) == 0:
-      return []
-
-    return apply_crossover(
-      parents,
-      crossover_method,
-      self._crossover_rate,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array
-    )
-
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
@@ -444,11 +417,17 @@ class Population():
     scores: List[float],
     fitness_avg_list: List[float]
   ) -> None:
-    children = self._generate_children(
+    children = generate_children(
+      self._current_population,
       self._sample_size * seed,
       crossover_method,
       parent_selection_method,
-      minimize
+      minimize,
+      self._crossover_rate,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array
     )
     self._select_next_generation(
       children,

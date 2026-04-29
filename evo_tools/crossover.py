@@ -5,13 +5,14 @@ from evo_tools.bin_gray import generate_random_binary_with_a_len
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual, validate_binaries_in_range
+from evo_tools.selection import select_parents
+
 
 CROSSOVER_METHODS = (
   'one_point',
   'two_points',
   'uniform'
 )
-
 
 def _build_child(
   binary: str,
@@ -32,7 +33,6 @@ def _build_child(
     variables_array
   )
 
-
 def _validate_children(
   binary_children: List[str],
   bits: List[int],
@@ -51,7 +51,6 @@ def _validate_children(
       precision
     )
   )
-
 
 def _append_valid_children(
   children: List[Individual],
@@ -90,7 +89,6 @@ def _append_valid_children(
         variables_array
       )
     )
-
 
 def crossover_one_point(
   parents: List[Tuple[Individual, Individual]],
@@ -160,7 +158,6 @@ def crossover_one_point(
       )
 
   return children
-
 
 def crossover_two_points(
   parents: List[Tuple[Individual, Individual]],
@@ -234,7 +231,6 @@ def crossover_two_points(
 
   return children
 
-
 def crossover_uniform(
   parents: List[Tuple[Individual, Individual]],
   crossover_rate: float,
@@ -292,13 +288,11 @@ def crossover_uniform(
 
   return children
 
-
 def validate_crossover_method(crossover_method: str) -> None:
   if crossover_method in CROSSOVER_METHODS:
     return
 
   raise Exception('Crossover method not allowed')
-
 
 def apply_crossover(
   parents: List[Tuple[Individual, Individual]],
@@ -326,3 +320,35 @@ def apply_crossover(
     )
   except KeyError as exc:
     raise Exception('Crossover method not allowed') from exc
+
+def generate_children(
+  population: List[Individual],
+  seed: float,
+  crossover_method: str,
+  parent_selection_method: str,
+  minimize: bool,
+  crossover_rate: float,
+  sub_populations: List[SubPopulation],
+  precision: Union[float, int],
+  parsed_function,
+  variables_array: List[str]
+) -> List[Individual]:
+  parents = select_parents(
+    population,
+    seed,
+    parent_selection_method,
+    minimize
+  )
+
+  if len(parents) == 0:
+    return []
+
+  return apply_crossover(
+    parents,
+    crossover_method,
+    crossover_rate,
+    sub_populations,
+    precision,
+    parsed_function,
+    variables_array
+  )
