@@ -22,14 +22,15 @@ def build_population(rng, precision, function = 'x', sample_size = None):
   population._initial_population, population._current_population, \
     population._best_individual, _, _, _ = initialize_canonical_state(
       population._initial_population,
-      population._sample_size,
-      population._max_sample_size,
-      population._sub_populations,
-      population._precision,
-      population._parsed_function,
-      population._variables_array,
-      True
-    )
+    population._sample_size,
+    population._max_sample_size,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array,
+    population._objective_function,
+    True
+  )
 
   return population
 
@@ -39,8 +40,7 @@ def rank_current_population(population, minimize):
     minimize,
     population._sub_populations,
     population._precision,
-    population._parsed_function,
-    population._variables_array
+    population._objective_function
   )
 
 def test_fitness_scores_follow_optimization_direction() -> None:

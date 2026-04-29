@@ -22,6 +22,7 @@ By the end of this roadmap, the project should meet the following goals:
 - Conversion between **real ranges**, **binary**, and **Gray code** should be deterministic and verifiable.
 - The genetic engine should be split into smaller, typed, testable modules.
 - Fitness evaluation should move from a mostly symbolic approach to a predominantly numeric one.
+- The package should be able to model and solve discrete binary optimization problems such as the **0/1 knapsack problem**, not only continuous real-range search.
 - The package should install and test using a modern Python workflow (`pyproject.toml`, extras, pytest, CI).
 - The repository should no longer version generated files or depend on unsafe test runner scripts.
 
@@ -377,6 +378,7 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
 - Symbolic substitutions for every individual.
 - Repeated string concatenation and parsing.
 - Repeated validation in crossover and mutation loops.
+- Population sizing is still tied to the smallest per-variable discrete domain, which blocks binary combinatorial problems such as 0/1 knapsack.
 
 ### Files involved
 
@@ -401,15 +403,20 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
 4. **Reduce string churn**
    - Move to lists, tuples, dataclasses, and controlled joins.
 
-5. **Optimize child validation**
+5. **Support binary combinatorial search**
+   - Decouple `sample_size` from the smallest single-variable domain size.
+   - Allow high-dimensional binary problems even when each variable has only two states.
+   - Add a deterministic reference case for 0/1 knapsack to prove the engine can express and solve that class of problem.
+
+6. **Optimize child validation**
    - Revisit the crossover retry flow.
    - Avoid loops where every attempt re-decodes everything from scratch unless it is truly needed.
 
-6. **Centralize RNG**
+7. **Centralize RNG**
    - Inject an explicit random generator.
    - Do not mix `random` and `numpy.random` without control.
 
-7. **Review heavy dependencies**
+8. **Review heavy dependencies**
    - Confirm whether `pandas` is really needed as a runtime dependency.
    - If it is only used for debug output, move it out of the runtime path or remove it.
 
@@ -418,6 +425,7 @@ Reduce the per-iteration cost and the unnecessary overhead of the engine.
 - Per-iteration evaluation is simpler.
 - The amount of repeated symbolic work is reduced.
 - Reproducibility improves after centralizing RNG.
+- The engine can run a representative binary 0/1 knapsack case without being blocked by the current per-variable domain-size limit.
 
 ### Risks / notes
 

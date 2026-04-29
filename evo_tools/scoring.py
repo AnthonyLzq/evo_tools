@@ -66,8 +66,7 @@ def rank_population(
   minimize: bool,
   sub_populations: List[SubPopulation],
   precision,
-  parsed_function,
-  variables_array: List[str],
+  objective_function,
   should_print: bool = False
 ) -> None:
   if len(population_sample) == 0:
@@ -83,8 +82,7 @@ def rank_population(
       i,
       sub_populations,
       precision,
-      parsed_function,
-      variables_array,
+      objective_function,
       should_print
     )
 

@@ -1,4 +1,4 @@
-from sympy import exp, sympify
+from sympy import exp, lambdify, sympify
 from typing import Dict, List, Tuple, Union
 
 from evo_tools.canonical import finalize_canonical_result, \
@@ -45,6 +45,9 @@ class Population():
 
   _parsed_function: exp
     Sympified objective function reused across initialization and evolution.
+
+  _objective_function:
+    Numeric callable compiled once for repeated per-individual evaluation.
 
   _print: bool = False
     Whether or not should print the output in the methods.
@@ -112,6 +115,11 @@ class Population():
     self._mutation_rate = mutation_rate
     self._variables_array = variables.split()
     self._parsed_function = sympify(str(function))
+    self._objective_function = lambdify(
+      self._variables_array,
+      self._parsed_function,
+      modules = 'math'
+    )
     self._print = _print
     self._current_population: List[Individual] = []
     self._initial_population: List[Individual] = []
@@ -191,6 +199,7 @@ class Population():
         self._precision,
         self._parsed_function,
         self._variables_array,
+        self._objective_function,
         MINIMIZE,
         ITERATIONS,
         SEED,

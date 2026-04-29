@@ -137,8 +137,7 @@ def evaluate_individual_objective(
   index: int,
   sub_populations: List[SubPopulation],
   precision: Union[float, int],
-  parsed_function,
-  variables_array: List[str],
+  objective_function,
   should_print: bool = False
 ) -> Union[float, None]:
   chromosome = individual.get_binary()
@@ -163,7 +162,7 @@ def evaluate_individual_objective(
     return None
 
   objective_value = float(
-    evaluate_function(parsed_function, variables_array, decoded_numbers)
+    objective_function(*decoded_numbers)
   )
 
   if should_print:

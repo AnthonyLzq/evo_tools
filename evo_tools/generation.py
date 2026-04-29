@@ -28,6 +28,7 @@ def select_next_generation(
   precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
+  objective_function,
   should_print: bool = False
 ) -> Tuple[List[Individual], float]:
   mutated_individuals = mutate_children(
@@ -45,8 +46,7 @@ def select_next_generation(
     minimize,
     sub_populations,
     precision,
-    parsed_function,
-    variables_array,
+    objective_function,
     should_print
   )
 
@@ -63,8 +63,7 @@ def select_next_generation(
     minimize,
     sub_populations,
     precision,
-    parsed_function,
-    variables_array,
+    objective_function,
     should_print
   )
 
@@ -85,6 +84,7 @@ def initialize_canonical_state(
   precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
+  objective_function,
   minimize: bool,
   should_print: bool = False
 ) -> Tuple[List[Individual], List[Individual], Individual, int, List[float], List[float]]:
@@ -103,8 +103,7 @@ def initialize_canonical_state(
     minimize,
     sub_populations,
     precision,
-    parsed_function,
-    variables_array,
+    objective_function,
     should_print
   )
 
@@ -131,6 +130,7 @@ def run_canonical_iteration(
   precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
+  objective_function,
   should_print: bool = False
 ) -> Tuple[List[Individual], Individual, float, float]:
   children = generate_children(
@@ -156,6 +156,7 @@ def run_canonical_iteration(
     precision,
     parsed_function,
     variables_array,
+    objective_function,
     should_print
   )
 

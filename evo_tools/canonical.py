@@ -63,6 +63,7 @@ def run_canonical_algorithm(
   precision: Union[float, int],
   parsed_function,
   variables_array: List[str],
+  objective_function,
   minimize: bool,
   iterations: int,
   seed: float,
@@ -83,6 +84,7 @@ def run_canonical_algorithm(
       precision,
       parsed_function,
       variables_array,
+      objective_function,
       minimize,
       should_print
     )
@@ -116,6 +118,7 @@ def run_canonical_algorithm(
         precision,
         parsed_function,
         variables_array,
+        objective_function,
         should_print
       )
     scores.append(best_individual.get_score())
