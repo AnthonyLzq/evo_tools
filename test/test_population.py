@@ -5,6 +5,7 @@ from sympy import Piecewise, symbols, sympify
 from unittest.mock import patch
 
 from evo_tools.generation import initialize_canonical_state
+from evo_tools.initialization import select_initial_population
 from evo_tools.population import Population
 from evo_tools.scoring import rank_population
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
@@ -86,6 +87,81 @@ def test_rank_population_reuses_cached_objective_values() -> None:
     )
 
   assert all(individual.has_objective_value() for individual in population._current_population)
+
+def test_select_initial_population_keeps_distinct_population_lists() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0.01,
+    'x',
+    sympify('x')
+  )
+  initial_population, current_population = select_initial_population(
+    [],
+    population._sample_size,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array
+  )
+
+  assert initial_population is not current_population
+  assert initial_population == current_population
+
+def test_select_initial_population_generated_lists_do_not_share_container() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0.01,
+    'x',
+    sympify('x')
+  )
+  initial_population, current_population = select_initial_population(
+    [],
+    population._sample_size,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array
+  )
+
+  current_population.pop()
+
+  assert len(initial_population) == population._sample_size
+  assert len(current_population) == population._sample_size - 1
+
+def test_select_initial_population_reuses_existing_initial_population_list() -> None:
+  population = build_population((0, 2), 1)
+  initial_population, current_population = select_initial_population(
+    population._initial_population,
+    population._sample_size,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array
+  )
+
+  assert initial_population is population._initial_population
+  assert current_population is not population._initial_population
+  assert initial_population == current_population
+
+def test_select_initial_population_existing_lists_do_not_share_container() -> None:
+  population = build_population((0, 2), 1)
+  initial_population, current_population = select_initial_population(
+    population._initial_population,
+    population._sample_size,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array
+  )
+
+  current_population.pop()
+
+  assert len(initial_population) == population._sample_size
+  assert len(current_population) == population._sample_size - 1
 
 def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)

@@ -69,8 +69,7 @@ def select_initial_population(
     if should_print:
       print_initial_population(initial_population)
 
-    current_population = initial_population.copy()
-    return initial_population.copy(), current_population
+    return initial_population, initial_population.copy()
 
   samples = sample_sub_populations(sub_populations, sample_size)
   first_sample, _ = samples[0]
@@ -89,4 +88,4 @@ def select_initial_population(
   if should_print:
     print_initial_population(current_population)
 
-  return current_population.copy(), current_population.copy()
+  return current_population.copy(), current_population
