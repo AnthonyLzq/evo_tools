@@ -5,7 +5,7 @@ from sympy import exp
 
 from evo_tools.crossover import validate_crossover_method
 from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
-from evo_tools.models import Individual
+from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import validate_mutation_method
 from evo_tools.phenotype import build_solution
 from evo_tools.reporting import print_final_summary, print_iteration_summary
