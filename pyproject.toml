@@ -31,6 +31,13 @@ classifiers = [
 [project.urls]
 Source = "https://github.com/AnthonyLzq/evo_tools"
 
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-mock",
+  "scipy",
+]
+
 [tool.setuptools.packages.find]
 include = ["evo_tools*"]
 

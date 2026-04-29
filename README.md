@@ -39,10 +39,10 @@ python -m pip install --editable .
 
 ### Testing
 
-Install the test dependencies:
+Install the package with the test extra:
 
 ```bash
-python -m pip install pytest pytest-mock scipy
+python -m pip install --editable ".[test]"
 ```
 
 Run the full test suite directly with pytest:
