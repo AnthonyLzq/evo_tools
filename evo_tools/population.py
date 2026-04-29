@@ -1,15 +1,13 @@
 from math import log
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
-from time import time
 
 from evo_tools.canonical import finalize_canonical_result, \
+  run_canonical_algorithm, \
   validate_canonical_methods
 from evo_tools.domain import build_sub_populations, resolve_max_sample_size, \
   validate_variable_count
-from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.reporting import print_iteration_summary
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -197,9 +195,9 @@ class Population():
       MUTATION_METHOD
     )
 
-    start = time()
     self._initial_population, self._current_population, self._best_individual, \
-      current_iteration, scores, fitness_avg_list = initialize_canonical_state(
+      self._selection_strength, current_iteration, scores, fitness_avg_list = \
+      run_canonical_algorithm(
         self._initial_population,
         self._sample_size,
         self._max_sample_size,
@@ -208,54 +206,15 @@ class Population():
         self._parsed_function,
         self._variables_array,
         MINIMIZE,
-        self._print
+        ITERATIONS,
+        SEED,
+        PRINT,
+        PARENT_SELECTION_METHOD,
+        CROSSOVER_METHOD,
+        MUTATION_METHOD,
+        self._crossover_rate,
+        self._mutation_rate
       )
-    end = time()
- 
-    if PRINT:
-      print_iteration_summary(
-        current_iteration,
-        self._best_individual,
-        self._selection_strength,
-        end - start,
-        self._current_population
-      )
- 
-    for i in range(ITERATIONS - 1):
-      start = time()
-      current_iteration += 1
-      self._current_population, self._best_individual, self._selection_strength, \
-        fitness_avg = run_canonical_iteration(
-          self._current_population,
-          self._sample_size,
-          SEED,
-          CROSSOVER_METHOD,
-          PARENT_SELECTION_METHOD,
-          MUTATION_METHOD,
-          MINIMIZE,
-          self._crossover_rate,
-          self._mutation_rate,
-          self._sub_populations,
-          self._precision,
-          self._parsed_function,
-          self._variables_array,
-          self._print
-        )
-      scores.append(self._best_individual.get_score())
-      fitness_avg_list.append(fitness_avg)
-      end = time()
- 
-      if self._selection_strength <= 1e-4:
-        break
- 
-      if PRINT:
-        print_iteration_summary(
-          current_iteration,
-          self._best_individual,
-          self._selection_strength,
-          end - start,
-          self._current_population
-        )
 
     solution, function = finalize_canonical_result(
       self._best_individual,
