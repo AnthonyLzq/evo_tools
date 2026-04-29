@@ -45,6 +45,7 @@ def mutate_individual(
 ) -> Union[Individual, None]:
   attempts = 0
   bits = child.get_bits()
+  total_bits = child.get_total_bits()
 
   while True:
     binary = apply_mutation(
@@ -53,7 +54,7 @@ def mutate_individual(
     )
     gray = format_to_n_bits(
       binary_to_gray(binary),
-      sum(bits)
+      total_bits
     )
     valid_mutation = build_individual_if_valid(
       binary,

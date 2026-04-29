@@ -19,7 +19,6 @@ def test_individual_get_fitness_reuses_parsed_numbers() -> None:
   with patch('evo_tools.models.loads', side_effect = AssertionError('unexpected loads')):
     assert individual.get_fitness() == 4.0
 
-
 def test_individual_caches_bits_metadata_and_owns_input_lists() -> None:
   bits = [1, 2, 3]
   variables = ['x', 'y', 'z']
@@ -40,3 +39,19 @@ def test_individual_caches_bits_metadata_and_owns_input_lists() -> None:
   assert individual.get_total_bits() == 6
   assert '"bits": "[1, 2, 3]"' in str(individual)
   assert individual.get_fitness() == 6.0
+
+def test_individual_total_bits_is_stable_after_source_list_mutation() -> None:
+  bits = [2, 2]
+  individual = Individual(
+    '0000',
+    '0000',
+    0,
+    bits,
+    '[0.0, 0.0]',
+    sympify('x + y'),
+    ['x', 'y']
+  )
+
+  bits[:] = [99]
+
+  assert individual.get_total_bits() == 4
