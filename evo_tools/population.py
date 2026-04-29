@@ -1,17 +1,15 @@
-from random import sample
 from math import log
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
 
-from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
-  get_float_from_custom_representation, get_binary_from_custom_representation, \
-  get_gray_from_custom_representation
+from evo_tools.bin_gray import range_of_numbers_binary_and_gray
 from evo_tools.crossover import generate_children, validate_crossover_method
 from evo_tools.generation import select_next_generation
+from evo_tools.initialization import select_initial_population
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import validate_mutation_method
-from evo_tools.phenotype import build_individual, build_solution, decode_individual
+from evo_tools.phenotype import build_solution, decode_individual
 from evo_tools.reporting import print_final_summary, print_iteration_summary
 from evo_tools.scoring import population_fitness_average, rank_population
 from evo_tools.selection import validate_parent_selection_method
@@ -164,44 +162,6 @@ class Population():
     if (len(self._variables_array) != len(self._sub_populations)):
       raise Exception('Variables size does not match the number of ranges')
 
-  def _select_initial_population(self) -> List[Individual]:
-    """
-    Method that selects the initial sample (randomly) of the Population.
-
-    Args:
-      sample_size: int
-        Population sample size.
-
-    Raises:
-      Exception: When the required sample_size is bigger than the maximum sample
-      size (the lowest range size from the domain).
-
-    Returns:
-      List[Individual]: A list of List[:class:`Individual`] which represents the
-      initial population
-    """
-    if (self._sample_size > self._max_sample_size):
-      raise Exception(
-        f'Sample size too big, maximum is: {self._max_sample_size}'
-      )
-
-    if len(self._initial_population) > 0:
-      self._print_initial_population()
-      return self._initial_population.copy()
-
-    samples = self._sample_sub_populations()
-    first_sample, _ = samples[0]
-
-    for i, _ in enumerate(first_sample):
-      self._initial_population.append(
-        self._build_initial_individual(samples, i)
-      )
-
-    self._current_population = self._initial_population.copy()
-    self._print_initial_population()
-
-    return self._current_population.copy()
-
   def _get_current_population(self) -> List[Individual]:
     """
     Returns a copy of the current Population data.
@@ -211,52 +171,6 @@ class Population():
     """
     return self._current_population.copy()
 
-  def _sample_sub_populations(self) -> List[Tuple[List[str], int]]:
-    return [
-      (
-        sample(sub_population.numbers, self._sample_size),
-        sub_population.bits
-      )
-      for sub_population in self._sub_populations
-    ]
-
-  def _build_initial_individual(
-    self,
-    samples: List[Tuple[List[str], int]],
-    index: int
-  ) -> Individual:
-    selected_numbers = [current_sample[index] for current_sample, _ in samples]
-    bits = [current_bits for _, current_bits in samples]
-    binary = ''.join(
-      get_binary_from_custom_representation(number)
-      for number in selected_numbers
-    )
-    gray = ''.join(
-      get_gray_from_custom_representation(number)
-      for number in selected_numbers
-    )
-    numbers = '[' + ', '.join(
-      get_float_from_custom_representation(number)
-      for number in selected_numbers
-    ) + ']'
-
-    return build_individual(
-      binary,
-      gray,
-      bits,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      numbers
-    )
-
-  def _print_initial_population(self) -> None:
-    if self._print:
-      print('\nInitial population:\n')
-      print(self._initial_population)
-      print()
-
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
@@ -264,7 +178,16 @@ class Population():
     self,
     minimize: bool
   ) -> Tuple[int, List[float], List[float]]:
-    self._select_initial_population()
+    self._initial_population, self._current_population = select_initial_population(
+      self._initial_population,
+      self._sample_size,
+      self._max_sample_size,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
+    )
     rank_population(
       self._current_population,
       minimize,

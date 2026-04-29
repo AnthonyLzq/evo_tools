@@ -6,6 +6,12 @@ import pandas as pd
 from evo_tools.models import Individual
 
 
+def print_initial_population(initial_population: List[Individual]) -> None:
+  print('\nInitial population:\n')
+  print(initial_population)
+  print()
+
+
 def print_iteration_summary(
   current_iteration: int,
   best_individual: Individual,

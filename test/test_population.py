@@ -18,7 +18,7 @@ def build_population(rng, precision, function = 'x', sample_size = None):
     sympify(function),
     sample_size = sample_size or domain_size
   )
-  population._select_initial_population()
+  population._initialize_canonical_state(True)
 
   return population
 
