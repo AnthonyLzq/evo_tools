@@ -24,6 +24,7 @@ class Individual():
     self._objective_value: Union[float, None] = None
     self._bits = bits
     self._numbers = numbers
+    self._numbers_array = loads(numbers)
     self._function = function
     self._variables_array = variables_array
 
@@ -61,10 +62,9 @@ class Individual():
     if self._objective_value is not None:
       return self._objective_value
 
-    numbers = loads(self._numbers)
     f = self._function
 
-    for i, n in enumerate(numbers):
+    for i, n in enumerate(self._numbers_array):
       f = f.subs(self._variables_array[i], n)
 
     return float(f)
