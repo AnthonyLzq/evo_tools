@@ -1,5 +1,3 @@
-import pandas as pd
-from json import loads
 from random import sample
 from math import log
 from sympy import exp, sympify
@@ -14,6 +12,7 @@ from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_children, validate_mutation_method
 from evo_tools.phenotype import build_individual, build_solution, \
   decode_individual, evaluate_individual_objective
+from evo_tools.reporting import print_final_summary, print_iteration_summary
 from evo_tools.scoring import assign_scores, population_fitness_average, \
   population_score_stats, selection_strength, sort_population_by_score
 from evo_tools.selection import validate_parent_selection_method
@@ -370,33 +369,6 @@ class Population():
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
-  def _print_iteration_summary(
-    self,
-    current_iteration: int,
-    selection_strength: float,
-    elapsed_time: float
-  ) -> None:
-    print(
-      f'\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {selection_strength}.\nTime elapsed: {elapsed_time}s.'
-    )
-    df = pd.DataFrame(loads(str(self._current_population)))
-    print(df, end = '\n\n')
-
-  def _print_final_summary(
-    self,
-    current_iteration: int,
-    fitness_avg_list: List[float],
-    solution: Dict[str, float],
-    function
-  ) -> None:
-    print(
-      f'\n\nFinally:\n{current_iteration}º iteration.\nBest individual: {self._best_individual}.\nSelection strength: {self._selection_strength}.'
-    )
-    print('Solution:')
-    print(f'  Variables: {solution}')
-    print(f'  Evaluation: {function}')
-    print(f'  Fitness average: {fitness_avg_list}')
-
   def _initialize_canonical_state(
     self,
     minimize: bool
@@ -497,10 +469,12 @@ class Population():
     end = time()
 
     if PRINT:
-      self._print_iteration_summary(
+      print_iteration_summary(
         current_iteration,
+        self._best_individual,
         self._selection_strength,
-        end - start
+        end - start,
+        self._current_population
       )
 
     for i in range(ITERATIONS - 1):
@@ -521,10 +495,12 @@ class Population():
         break
 
       if PRINT:
-        self._print_iteration_summary(
+        print_iteration_summary(
           current_iteration,
+          self._best_individual,
           self._selection_strength,
-          end - start
+          end - start,
+          self._current_population
         )
 
     _, floats = decode_individual(
@@ -539,8 +515,10 @@ class Population():
     )
 
     if PRINT:
-      self._print_final_summary(
+      print_final_summary(
         current_iteration,
+        self._best_individual,
+        self._selection_strength,
         fitness_avg_list,
         solution,
         function
