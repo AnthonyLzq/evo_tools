@@ -266,6 +266,7 @@ class Population():
       self._current_population = new_population
 
     self._rank_population(self._current_population, minimize)
+    self._refresh_best_individual()
 
   def _select(
     self,
@@ -277,12 +278,7 @@ class Population():
     mutated_individuals = self._mutation(individuals, mutation_method)
     self._rank_population(mutated_individuals, minimize)
 
-    # Calculate the mean and std of the population before the selection
-    current_population_score = np.array([
-      x.get_score() for x in self._current_population
-    ])
-    score_std_before_selection = float(np.std(current_population_score))
-    score_mean_before_selection = float(np.mean(current_population_score))
+    score_mean_before_selection, score_std_before_selection = self._current_population_score_stats()
 
     self._update_current_population(
       self._current_population[
@@ -291,18 +287,10 @@ class Population():
       minimize
     )
 
-    # Calculate the mean of the population after the selection
-    current_population_score = np.array([
-      x.get_score() for x in self._current_population
-    ])
-    score_mean_after_selection = float(np.mean(current_population_score))
-    self._selection_strength = (
-      float(abs(
-        (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
-      )) if score_std_before_selection > 0 else 0.0
+    self._update_selection_strength(
+      score_mean_before_selection,
+      score_std_before_selection
     )
-
-    self._best_individual = self._current_population[0]
 
   def _mutation(
     self,
@@ -436,6 +424,31 @@ class Population():
       )
     ))
 
+  def _current_population_score_stats(self) -> Tuple[float, float]:
+    current_population_scores = np.array(
+      [individual.get_score() for individual in self._current_population]
+    )
+
+    return (
+      float(np.mean(current_population_scores)),
+      float(np.std(current_population_scores))
+    )
+
+  def _update_selection_strength(
+    self,
+    score_mean_before_selection: float,
+    score_std_before_selection: float
+  ) -> None:
+    score_mean_after_selection, _ = self._current_population_score_stats()
+    self._selection_strength = (
+      float(abs(
+        (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
+      )) if score_std_before_selection > 0 else 0.0
+    )
+
+  def _refresh_best_individual(self) -> None:
+    self._best_individual = self._current_population[0]
+
   def _decode_individual(
     self,
     individual: Individual
@@ -563,7 +576,7 @@ class Population():
     self._select_initial_population()
     start = time()
     self._rank_population(self._current_population, MINIMIZE)
-    self._best_individual = self._current_population[0]
+    self._refresh_best_individual()
     current_iteration = 1
     scores: List[float] = []
     fitness_avg_list: List[float] = [self._population_fitness_average()]
