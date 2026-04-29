@@ -521,6 +521,36 @@ class Population():
     print(f'  Evaluation: {function}')
     print(f'  Fitness average: {fitness_avg_list}')
 
+  def _initialize_canonical_state(
+    self,
+    minimize: bool
+  ) -> Tuple[int, List[float], List[float]]:
+    self._select_initial_population()
+    self._rank_population(self._current_population, minimize)
+    self._refresh_best_individual()
+
+    return 1, [], [self._population_fitness_average()]
+
+  def _run_canonical_iteration(
+    self,
+    seed: float,
+    crossover_method,
+    parent_selection_method,
+    mutation_method: str,
+    minimize: bool,
+    scores: List[float],
+    fitness_avg_list: List[float]
+  ) -> None:
+    children = self._do_crossover_using_a_method(
+      self._sample_size * seed,
+      crossover_method,
+      parent_selection_method,
+      minimize
+    )
+    self._select(children, minimize, self._sample_size, mutation_method)
+    scores.append(self._best_individual.get_score())
+    fitness_avg_list.append(self._population_fitness_average())
+
   def canonical_algorithm(
     self,
     ITERATIONS = 100,
@@ -573,13 +603,10 @@ class Population():
     validate_crossover_method(CROSSOVER_METHOD)
     validate_mutation_method(MUTATION_METHOD)
 
-    self._select_initial_population()
     start = time()
-    self._rank_population(self._current_population, MINIMIZE)
-    self._refresh_best_individual()
-    current_iteration = 1
-    scores: List[float] = []
-    fitness_avg_list: List[float] = [self._population_fitness_average()]
+    current_iteration, scores, fitness_avg_list = self._initialize_canonical_state(
+      MINIMIZE
+    )
     end = time()
 
     if PRINT:
@@ -592,15 +619,15 @@ class Population():
     for i in range(ITERATIONS - 1):
       start = time()
       current_iteration += 1
-      children = self._do_crossover_using_a_method(
-        self._sample_size * SEED,
+      self._run_canonical_iteration(
+        SEED,
         CROSSOVER_METHOD,
         PARENT_SELECTION_METHOD,
-        MINIMIZE
+        MUTATION_METHOD,
+        MINIMIZE,
+        scores,
+        fitness_avg_list
       )
-      self._select(children, MINIMIZE, self._sample_size, MUTATION_METHOD)
-      scores.append(self._best_individual.get_score())
-      fitness_avg_list.append(self._population_fitness_average())
       end = time()
 
       if self._selection_strength <= 1e-4:
