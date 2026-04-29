@@ -1,6 +1,6 @@
 import pandas as pd
 from json import loads
-from random import random, sample
+from random import sample
 from math import log
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
@@ -11,7 +11,7 @@ from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_gray_from_custom_representation
 from evo_tools.crossover import apply_crossover, validate_crossover_method
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.mutation import mutate_individual, validate_mutation_method
+from evo_tools.mutation import mutate_children, validate_mutation_method
 from evo_tools.phenotype import build_individual, build_solution, \
   decode_individual, evaluate_function
 from evo_tools.scoring import assign_scores, population_fitness_average, \
@@ -302,7 +302,16 @@ class Population():
     sample_size: int,
     mutation_method: str
   ) -> None:
-    mutated_individuals = self._mutation(individuals, mutation_method)
+    mutated_individuals = mutate_children(
+      individuals,
+      mutation_method,
+      self._mutation_rate,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
+    )
     self._rank_population(mutated_individuals, minimize)
 
     score_mean_before_selection, score_std_before_selection = population_score_stats(
@@ -319,47 +328,6 @@ class Population():
       score_mean_before_selection,
       score_std_before_selection
     )
-
-  def _mutation(
-    self,
-    children: List[Individual],
-    mutation_method = 'one_point'
-  ) -> List[Individual]:
-    if self._print:
-      print(f'\nPopulation children before mutation: {children}\n')
-      print()
-
-    mutated_children: List[Individual] = []
-
-    for child in children:
-      mutated_child = child
-
-      if random() < self._mutation_rate:
-        if (self._print):
-          print(f'  Mutation for child: {child}\n')
-
-        valid_mutation = mutate_individual(
-          child,
-          mutation_method,
-          self._sub_populations,
-          self._precision,
-          self._parsed_function,
-          self._variables_array
-        )
-
-        if valid_mutation is not None:
-          mutated_child = valid_mutation
-
-          if (self._print):
-            print(f'  Mutation for child completed: {mutated_child}\n')
-
-      mutated_children.append(mutated_child)
-
-    if self._print:
-      print(f'\nPopulation children after mutation: {mutated_children}\n')
-      print()
-
-    return mutated_children
 
   def _fitness(self, population_sample: List[Individual], minimize: bool) -> None:
     """

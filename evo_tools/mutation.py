@@ -1,3 +1,4 @@
+from random import random
 from typing import List, Union
 
 from evo_tools.bin_gray import binary_to_gray, format_to_n_bits, \
@@ -80,3 +81,49 @@ def mutate_individual(
       return None
 
     attempts += 1
+
+def mutate_children(
+  children: List[Individual],
+  mutation_method: str,
+  mutation_rate: float,
+  sub_populations: List[SubPopulation],
+  precision: Union[float, int],
+  parsed_function,
+  variables_array: List[str],
+  should_print: bool = False
+) -> List[Individual]:
+  if should_print:
+    print(f'\nPopulation children before mutation: {children}\n')
+    print()
+
+  mutated_children: List[Individual] = []
+
+  for child in children:
+    mutated_child = child
+
+    if random() < mutation_rate:
+      if should_print:
+        print(f'  Mutation for child: {child}\n')
+
+      valid_mutation = mutate_individual(
+        child,
+        mutation_method,
+        sub_populations,
+        precision,
+        parsed_function,
+        variables_array
+      )
+
+      if valid_mutation is not None:
+        mutated_child = valid_mutation
+
+        if should_print:
+          print(f'  Mutation for child completed: {mutated_child}\n')
+
+    mutated_children.append(mutated_child)
+
+  if should_print:
+    print(f'\nPopulation children after mutation: {mutated_children}\n')
+    print()
+
+  return mutated_children
