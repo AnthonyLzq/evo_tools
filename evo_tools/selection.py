@@ -82,33 +82,34 @@ def _select_parents_by_probabilities(
     _unique_parent_indexes(random_parents_indexes_chosen)
   )
 
+def _generation_scores(population: List[Individual]) -> np.ndarray:
+  return np.fromiter(
+    (individual.get_score() for individual in population),
+    dtype = float
+  )
+
 def select_parents_by_fitness_proportionate(
   population: List[Individual],
   seed: float
 ) -> List[Tuple[Individual, Individual]]:
-  parents_candidates = np.array(population)
-  generation_scores = np.array(
-    [individual.get_score() for individual in parents_candidates]
-  )
-  generation_score = sum(generation_scores)
+  generation_scores = _generation_scores(population)
+  generation_score = float(generation_scores.sum())
+  shifted_generation_scores = generation_scores + generation_score / 2
 
   return _select_parents_by_probabilities(
     population,
     seed,
-    np.array(
-      [x + generation_score / 2 for x in generation_scores]
-    ) / (generation_score + generation_score / 2 * len(generation_scores))
+    shifted_generation_scores / (
+      generation_score + generation_score / 2 * len(generation_scores)
+    )
   )
 
 def select_parents_by_roulette(
   population: List[Individual],
   seed: float
 ) -> List[Tuple[Individual, Individual]]:
-  parents_candidates = np.array(population)
-  generation_scores = np.array(
-    [individual.get_score() for individual in parents_candidates]
-  )
-  generation_score = sum(generation_scores)
+  generation_scores = _generation_scores(population)
+  generation_score = float(generation_scores.sum())
 
   return _select_parents_by_probabilities(
     population,
