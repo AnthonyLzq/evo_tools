@@ -2,6 +2,7 @@ import numpy as np
 from sympy import sympify
 from unittest.mock import patch
 
+from evo_tools.generation import initialize_canonical_state
 from evo_tools.population import Population
 from evo_tools.scoring import rank_population
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
@@ -18,7 +19,17 @@ def build_population(rng, precision, function = 'x', sample_size = None):
     sympify(function),
     sample_size = sample_size or domain_size
   )
-  population._initialize_canonical_state(True)
+  population._initial_population, population._current_population, \
+    population._best_individual, _, _, _ = initialize_canonical_state(
+      population._initial_population,
+      population._sample_size,
+      population._max_sample_size,
+      population._sub_populations,
+      population._precision,
+      population._parsed_function,
+      population._variables_array,
+      True
+    )
 
   return population
 

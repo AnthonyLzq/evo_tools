@@ -4,14 +4,12 @@ from typing import Dict, List, Tuple, Union
 from time import time
 
 from evo_tools.bin_gray import range_of_numbers_binary_and_gray
-from evo_tools.crossover import generate_children, validate_crossover_method
-from evo_tools.generation import select_next_generation
-from evo_tools.initialization import select_initial_population
+from evo_tools.crossover import validate_crossover_method
+from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import validate_mutation_method
 from evo_tools.phenotype import build_solution, decode_individual
 from evo_tools.reporting import print_final_summary, print_iteration_summary
-from evo_tools.scoring import population_fitness_average, rank_population
 from evo_tools.selection import validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -171,75 +169,6 @@ class Population():
     """
     return self._current_population.copy()
 
-  def _refresh_best_individual(self) -> None:
-    self._best_individual = self._current_population[0]
-
-  def _initialize_canonical_state(
-    self,
-    minimize: bool
-  ) -> Tuple[int, List[float], List[float]]:
-    self._initial_population, self._current_population = select_initial_population(
-      self._initial_population,
-      self._sample_size,
-      self._max_sample_size,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-    rank_population(
-      self._current_population,
-      minimize,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-    self._refresh_best_individual()
-
-    return 1, [], [population_fitness_average(self._current_population)]
-
-  def _run_canonical_iteration(
-    self,
-    seed: float,
-    crossover_method,
-    parent_selection_method,
-    mutation_method: str,
-    minimize: bool,
-    scores: List[float],
-    fitness_avg_list: List[float]
-  ) -> None:
-    children = generate_children(
-      self._current_population,
-      self._sample_size * seed,
-      crossover_method,
-      parent_selection_method,
-      minimize,
-      self._crossover_rate,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array
-    )
-    self._current_population, self._selection_strength = select_next_generation(
-      self._current_population,
-      children,
-      minimize,
-      self._sample_size,
-      mutation_method,
-      self._mutation_rate,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-    self._refresh_best_individual()
-    scores.append(self._best_individual.get_score())
-    fitness_avg_list.append(population_fitness_average(self._current_population))
-
   def canonical_algorithm(
     self,
     ITERATIONS = 100,
@@ -293,11 +222,20 @@ class Population():
     validate_mutation_method(MUTATION_METHOD)
 
     start = time()
-    current_iteration, scores, fitness_avg_list = self._initialize_canonical_state(
-      MINIMIZE
-    )
+    self._initial_population, self._current_population, self._best_individual, \
+      current_iteration, scores, fitness_avg_list = initialize_canonical_state(
+        self._initial_population,
+        self._sample_size,
+        self._max_sample_size,
+        self._sub_populations,
+        self._precision,
+        self._parsed_function,
+        self._variables_array,
+        MINIMIZE,
+        self._print
+      )
     end = time()
-
+ 
     if PRINT:
       print_iteration_summary(
         current_iteration,
@@ -306,24 +244,34 @@ class Population():
         end - start,
         self._current_population
       )
-
+ 
     for i in range(ITERATIONS - 1):
       start = time()
       current_iteration += 1
-      self._run_canonical_iteration(
-        SEED,
-        CROSSOVER_METHOD,
-        PARENT_SELECTION_METHOD,
-        MUTATION_METHOD,
-        MINIMIZE,
-        scores,
-        fitness_avg_list
-      )
+      self._current_population, self._best_individual, self._selection_strength, \
+        fitness_avg = run_canonical_iteration(
+          self._current_population,
+          self._sample_size,
+          SEED,
+          CROSSOVER_METHOD,
+          PARENT_SELECTION_METHOD,
+          MUTATION_METHOD,
+          MINIMIZE,
+          self._crossover_rate,
+          self._mutation_rate,
+          self._sub_populations,
+          self._precision,
+          self._parsed_function,
+          self._variables_array,
+          self._print
+        )
+      scores.append(self._best_individual.get_score())
+      fitness_avg_list.append(fitness_avg)
       end = time()
-
+ 
       if self._selection_strength <= 1e-4:
         break
-
+ 
       if PRINT:
         print_iteration_summary(
           current_iteration,
