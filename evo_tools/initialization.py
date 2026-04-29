@@ -1,10 +1,10 @@
-from random import choices, sample
 from typing import List, Tuple, Union
 
 from evo_tools.bin_gray import get_binary_from_custom_representation, \
   get_float_from_custom_representation, get_gray_from_custom_representation
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual
+from evo_tools.randomness import sample_with_replacement, sample_without_replacement
 from evo_tools.reporting import print_initial_population
 
 
@@ -13,9 +13,9 @@ def sample_sub_populations(
   sample_size: int
 ) -> List[List[str]]:
   return [
-    sample(sub_population.numbers, sample_size)
+    sample_without_replacement(sub_population.numbers, sample_size)
     if sample_size <= len(sub_population.numbers) else
-    choices(sub_population.numbers, k = sample_size)
+    sample_with_replacement(sub_population.numbers, sample_size)
     for sub_population in sub_populations
   ]
 

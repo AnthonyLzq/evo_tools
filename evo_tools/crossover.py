@@ -1,9 +1,10 @@
-from random import choice, random, sample
 from typing import List, Tuple, Union
 
 from evo_tools.bin_gray import generate_random_binary_with_a_len
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual_if_valid
+from evo_tools.randomness import choice_from, random_probability, \
+  sample_without_replacement
 from evo_tools.selection import select_parents
 
 
@@ -56,7 +57,7 @@ def crossover_one_point(
   children: List[Individual] = []
 
   for parent in parents:
-    if random() < crossover_rate:
+    if random_probability() < crossover_rate:
       points = [i for i in range(0, total_bits)]
       first_parent, second_parent = parent
       binary_p1, binary_p2 = first_parent.get_binary(), second_parent.get_binary()
@@ -67,7 +68,7 @@ def crossover_one_point(
       valid_children: List[Individual] = []
 
       while True:
-        point = choice(points)
+        point = choice_from(points)
         binary_children = [
           binary_p1[:point] + binary_p2[point:],
           binary_p2[:point] + binary_p1[point:]
@@ -116,7 +117,7 @@ def crossover_two_points(
   children: List[Individual] = []
 
   for parent in parents:
-    if random() < crossover_rate:
+    if random_probability() < crossover_rate:
       points = [i for i in range(0, total_bits)]
       first_parent, second_parent = parent
       binary_p1, binary_p2 = first_parent.get_binary(), second_parent.get_binary()
@@ -127,7 +128,7 @@ def crossover_two_points(
       valid_children: List[Individual] = []
 
       while True:
-        point_1, point_2 = sample(points, 2)
+        point_1, point_2 = sample_without_replacement(points, 2)
         point_max, point_min = point_1, point_2
 
         if point_max < point_2:
@@ -179,7 +180,7 @@ def crossover_uniform(
   children: List[Individual] = []
 
   for parent in parents:
-    if random() < crossover_rate:
+    if random_probability() < crossover_rate:
       first_parent, second_parent = parent
       binary_p1, binary_p2 = first_parent.get_binary(), second_parent.get_binary()
       gray_p1, gray_p2 = first_parent.get_gray(), second_parent.get_gray()

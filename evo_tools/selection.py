@@ -1,9 +1,9 @@
-from random import sample
 from typing import List, Tuple
 
 import numpy as np
 
 from evo_tools.models import Individual
+from evo_tools.randomness import sample_without_replacement
 
 PARENT_SELECTION_METHODS = (
   'fitness_proportionate',
@@ -118,7 +118,7 @@ def select_parents_by_tournament(
     chosen_list: List[Individual] = []
 
     for _ in range(2):
-      candidates = sample(population, min(k, len(population)))
+      candidates = sample_without_replacement(population, min(k, len(population)))
       chosen = min(
         candidates,
         key = lambda individual: individual.get_fitness()

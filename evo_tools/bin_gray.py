@@ -1,6 +1,7 @@
-from random import randint
 from math import log, log2
 from typing import Dict, List, Optional, Tuple, Union
+
+from evo_tools.randomness import randint_inclusive
 
 def binary_to_int(b: str) -> int:
   """
@@ -249,7 +250,7 @@ def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   """
   length = len(b) - 1
   new_b = ''
-  pos_bits = [randint(0, length) for _ in range(0, n)]
+  pos_bits = [randint_inclusive(0, length) for _ in range(0, n)]
 
   for pos_bit in pos_bits:
     new_bit = '0' if b[pos_bit] == '1' else '1'
@@ -273,7 +274,7 @@ def mutation_binary_or_gray_by_flipping(b: str) -> str:
   for bit in b:
     new_bit = bit
 
-    if randint(0, 1) == 1:
+    if randint_inclusive(0, 1) == 1:
       new_bit = '0' if bit == '1' else '1'
 
     new_b += new_bit
@@ -284,7 +285,7 @@ def generate_random_binary_with_a_len(len: int) -> str:
   new_binary = ''
 
   for _ in range(len):
-    new_binary += str(randint(0, 1))
+    new_binary += str(randint_inclusive(0, 1))
 
   return new_binary
 

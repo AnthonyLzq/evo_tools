@@ -1,10 +1,10 @@
-from random import random
 from typing import List, Union
 
 from evo_tools.bin_gray import binary_to_gray, format_to_n_bits, \
   mutate_n_bits_from_binary_or_gray, mutation_binary_or_gray_by_flipping
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.phenotype import build_individual_if_valid
+from evo_tools.randomness import random_probability
 
 MUTATION_METHODS = (
   'one_point',
@@ -93,7 +93,7 @@ def mutate_children(
   for child in children:
     mutated_child = child
 
-    if random() < mutation_rate:
+    if random_probability() < mutation_rate:
       if should_print:
         print(f'  Mutation for child: {child}\n')
 
