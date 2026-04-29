@@ -25,7 +25,7 @@ class Individual():
     self._total_bits = sum(self._bits)
     self._bits_repr = f'[{", ".join(str(bit) for bit in self._bits)}]'
     self._numbers = numbers
-    self._numbers_array = loads(numbers)
+    self._numbers_array = tuple(float(number) for number in loads(numbers))
     self._function = function
     self._variables_array = variables_array.copy()
 
@@ -64,6 +64,9 @@ class Individual():
 
   def get_numbers(self) -> str:
     return self._numbers
+
+  def get_numbers_tuple(self) -> Tuple[float, ...]:
+    return self._numbers_array
 
   def get_fitness(self):
     if self._objective_value is not None:

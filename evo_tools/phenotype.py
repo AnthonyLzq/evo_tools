@@ -156,21 +156,21 @@ def evaluate_individual_objective(
   should_print: bool = False
 ) -> Union[float, None]:
   chromosome = individual.get_binary()
+  decoded_numbers = individual.get_numbers_tuple()
 
   if should_print:
     print(f'Chromosome {index}: {chromosome}')
-
-  binaries, decoded_numbers = decode_individual(
-    individual,
-    sub_populations,
-    precision
-  )
+    binaries, decoded_numbers = decode_individual(
+      individual,
+      sub_populations,
+      precision
+    )
 
   if should_print:
     print(f'  gens: {binaries}')
     print(f'  fens: {decoded_numbers}')
 
-  if len(binaries) != len(decoded_numbers):
+  if should_print and len(binaries) != len(decoded_numbers):
     if should_print:
       print(f'  fitness: Fail\n')
 
