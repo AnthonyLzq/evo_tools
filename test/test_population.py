@@ -366,3 +366,44 @@ def test_canonical_algorithm_solves_reference_knapsack_case() -> None:
   assert weight <= capacity
   assert value == 280
   assert float(result) == 280.0
+
+def test_canonical_algorithm_is_reproducible_with_random_seed() -> None:
+  first_population = Population(
+    [(0, 2), (0, 2)],
+    1,
+    1,
+    0.05,
+    'x y',
+    sympify('x + y'),
+    sample_size = 5
+  )
+  second_population = Population(
+    [(0, 2), (0, 2)],
+    1,
+    1,
+    0.05,
+    'x y',
+    sympify('x + y'),
+    sample_size = 5
+  )
+
+  first_result = first_population.canonical_algorithm(
+    ITERATIONS = 5,
+    MINIMIZE = False,
+    SEED = 1.5,
+    PARENT_SELECTION_METHOD = 'roulette',
+    CROSSOVER_METHOD = 'uniform',
+    MUTATION_METHOD = 'flipping',
+    RANDOM_SEED = 123
+  )
+  second_result = second_population.canonical_algorithm(
+    ITERATIONS = 5,
+    MINIMIZE = False,
+    SEED = 1.5,
+    PARENT_SELECTION_METHOD = 'roulette',
+    CROSSOVER_METHOD = 'uniform',
+    MUTATION_METHOD = 'flipping',
+    RANDOM_SEED = 123
+  )
+
+  assert first_result == second_result

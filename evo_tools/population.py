@@ -6,6 +6,8 @@ from evo_tools.canonical import finalize_canonical_result, \
   validate_canonical_methods
 from evo_tools.domain import build_sub_populations, validate_variable_count
 from evo_tools.models import Individual, SubPopulation
+from evo_tools.randomness import seed_random_generators
+from evo_tools.randomness import seed_random_generators
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -141,7 +143,8 @@ class Population():
     PRINT = False,
     PARENT_SELECTION_METHOD = 'fitness_proportionate',
     CROSSOVER_METHOD = 'one_point',
-    MUTATION_METHOD = 'one_point'
+    MUTATION_METHOD = 'one_point',
+    RANDOM_SEED = None
   ) -> Tuple[List[float], Dict[str, float], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
@@ -170,6 +173,8 @@ class Population():
       crossover. Defaults to 'one_point'.
       MUTATION_METHOD (MutationMethods, optional): a method to mutate. Default
       to 'one_point'.
+      RANDOM_SEED (int | None, optional): seed applied to both `random` and
+      `numpy.random` before the algorithm runs. Defaults to None.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
@@ -186,6 +191,7 @@ class Population():
       CROSSOVER_METHOD,
       MUTATION_METHOD
     )
+    seed_random_generators(RANDOM_SEED)
 
     self._initial_population, self._current_population, self._best_individual, \
       self._selection_strength, current_iteration, scores, fitness_avg_list = \

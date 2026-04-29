@@ -100,7 +100,8 @@ def canonical_algorithm(
   _print = False,
   parent_selection_method = 'fitness_proportionate',
   crossover_method = 'one_point',
-  mutation_method = 'one_point'
+  mutation_method = 'one_point',
+  random_seed = None
 ) -> Tuple[List[float], Dict[str, float], exp, List[float], float]:
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
@@ -131,7 +132,8 @@ def canonical_algorithm(
     _print,
     parent_selection_method,
     crossover_method,
-    mutation_method
+    mutation_method,
+    random_seed
   )
   end = time()
   spend_time = end - start
