@@ -47,9 +47,9 @@ By the end of this roadmap, the project should meet the following goals:
 
 ## Current roadmap status
 
-- **Phases 0-4 are complete**.
-- **Phase 5 is the active next step**.
-- The most important remaining work is packaging modernization (`pyproject.toml`), dependency cleanup, pytest configuration, and CI.
+- **Phases 0-5 are complete**.
+- The packaging, test, and CI modernization work is now in place through `pyproject.toml`, scoped extras, direct pytest usage, and a minimal GitHub Actions workflow.
+- The main remaining backlog is now outside the packaging track: documenting the discrete domain model more explicitly, reviewing multi-bit mutation semantics, and revisiting stop conditions.
 
 ---
 
@@ -460,6 +460,10 @@ Completed.
 
 Turn the project into a modern Python package that is easy to install, test, and maintain.
 
+### Status
+
+Completed.
+
 ### Issues identified
 
 - Legacy `setup.py` layout without `pyproject.toml`.
@@ -481,52 +485,61 @@ Turn the project into a modern Python package that is easy to install, test, and
 
 ### Step by step
 
-1. **Migrate packaging to `pyproject.toml`**
-   - Declare a modern build system.
-   - Move the main metadata into the new file.
-   - Keep `setup.py` minimal or remove it if it is no longer needed.
+1. **Migrate packaging to `pyproject.toml`** - completed
+    - Declare a modern build system.
+    - Move the main metadata into the new file.
+    - Keep `setup.py` minimal or remove it if it is no longer needed.
 
-2. **Declare metadata correctly**
-   - `requires-python`
-   - MIT license
-   - correct project URLs
-   - realistic classifiers
+2. **Declare metadata correctly** - completed
+    - `requires-python`
+    - MIT license
+    - correct project URLs
+    - realistic classifiers
 
-3. **Split dependencies by scope**
-   - runtime
-   - test
-   - dev
+3. **Split dependencies by scope** - completed
+    - runtime
+    - test
+    - dev
 
-4. **Remove `pytest-runner`**
-   - It should no longer be part of the workflow.
+4. **Remove `pytest-runner`** - completed
+    - It should no longer be part of the workflow.
 
-5. **Remove test entry points**
-   - Replace `test_algorithm` and `test_bin_gray`.
-   - If a CLI is desired, create a real package CLI instead.
+5. **Remove test entry points** - completed
+    - Replace `test_algorithm` and `test_bin_gray`.
+    - If a CLI is desired, create a real package CLI instead.
 
-6. **Modernize the test suite**
-   - Add pytest configuration.
-   - Fix seeds.
-   - Add missing dependencies such as `scipy`, or replace them if they are unnecessary.
-   - Review brittle assertions and any assertions that no longer match current behavior.
+6. **Modernize the test suite** - completed
+    - Add pytest configuration.
+    - Fix seeds.
+    - Add missing dependencies such as `scipy`, or replace them if they are unnecessary.
+    - Review brittle assertions and any assertions that no longer match current behavior.
 
-7. **Add CI**
-   - Create a workflow that runs:
-     - installation
-     - tests
-     - basic validations
+7. **Add CI** - completed
+    - Create a workflow that runs:
+      - installation
+      - tests
+      - basic validations
 
-8. **Update README**
-   - modern installation flow
-   - basic library usage
-   - local development setup
-   - how to run tests
+8. **Update README** - completed
+    - modern installation flow
+    - basic library usage
+    - local development setup
+    - how to run tests
+
+### What changed
+
+- The project now declares its build system and package metadata in `pyproject.toml`, while `setup.py` has been reduced to a minimal setuptools shim.
+- Runtime, test, and development dependencies are now separated through extras, including `.[test]` and `.[dev]`.
+- Legacy `pytest-runner` usage and console entry points that executed tests through `os.system(...)` were removed.
+- Pytest now has a standard home in project configuration, and the documented local workflow uses direct `pytest` invocation instead of helper scripts.
+- The repository now includes a minimal GitHub Actions workflow that runs the test suite on the supported minimum and latest Python versions.
+- README instructions now match the actual editable install, test, and development flows.
 
 ### Acceptance criteria
 
-- The project installs using a modern workflow.
-- Tests and documentation match the implementation.
-- A new contributor can clone, install, and run the suite without ambiguity.
+- The project installs using a modern workflow. **Done**
+- Tests and documentation match the implementation. **Done**
+- A new contributor can clone, install, and run the suite without ambiguity. **Done**
 
 ### Risks / notes
 
@@ -558,7 +571,7 @@ With a cleaner architecture, move on to **Phase 4** and optimize the engine. Thi
 
 ## Step 6
 
-Close with **Phase 5** so packaging, tests, and CI are fully modernized. This is the current next step.
+Close with **Phase 5** so packaging, tests, and CI are fully modernized. This is now complete.
 
 ---
 
@@ -578,11 +591,11 @@ Close with **Phase 5** so packaging, tests, and CI are fully modernized. This is
 - [x] Replace serialized strings with typed structures
 - [x] Compile the objective function and reduce symbolic overhead
 - [x] Centralize RNG
-- [ ] Migrate to `pyproject.toml`
-- [ ] Modernize pytest and test dependencies
-- [ ] Remove entry points that run tests
-- [ ] Add CI
-- [ ] Update README with the new workflow
+- [x] Migrate to `pyproject.toml`
+- [x] Modernize pytest and test dependencies
+- [x] Remove entry points that run tests
+- [x] Add CI
+- [x] Update README with the new workflow
 
 ---
 
