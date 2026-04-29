@@ -287,7 +287,16 @@ class Population():
     self._rank_population(self._current_population, minimize)
     self._refresh_best_individual()
 
-  def _select(
+  def _compose_next_population(
+    self,
+    mutated_individuals: List[Individual],
+    sample_size: int
+  ) -> List[Individual]:
+    return self._current_population[
+      :len(self._current_population) - len(mutated_individuals)
+    ] + mutated_individuals[:sample_size]
+
+  def _select_next_generation(
     self,
     individuals: List[Individual],
     minimize: bool,
@@ -300,9 +309,7 @@ class Population():
     score_mean_before_selection, score_std_before_selection = self._current_population_score_stats()
 
     self._update_current_population(
-      self._current_population[
-        :len(self._current_population) - len(mutated_individuals)
-      ] + mutated_individuals[:sample_size],
+      self._compose_next_population(mutated_individuals, sample_size),
       minimize
     )
 
@@ -580,7 +587,12 @@ class Population():
       parent_selection_method,
       minimize
     )
-    self._select(children, minimize, self._sample_size, mutation_method)
+    self._select_next_generation(
+      children,
+      minimize,
+      self._sample_size,
+      mutation_method
+    )
     scores.append(self._best_individual.get_score())
     fitness_avg_list.append(self._population_fitness_average())
 
