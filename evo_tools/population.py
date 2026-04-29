@@ -17,8 +17,7 @@ from evo_tools.mutation import mutate_individual, validate_mutation_method
 from evo_tools.phenotype import build_individual, decode_binary_segments, \
   validate_binaries_in_range
 from evo_tools.scoring import assign_scores, sort_population_by_score
-from evo_tools.selection import select_parents_by_fitness_proportionate, \
-  select_parents_by_roulette, select_parents_by_tournament
+from evo_tools.selection import select_parents, validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -399,36 +398,18 @@ class Population():
 
     assign_scores(population_sample, function_evaluations, minimize)
 
-  def _generate_parents_using_a_method(
+  def _select_parents(
     self,
     seed: float,
     parent_selection_method,
     minimize: bool
   ):
-    if parent_selection_method == 'fitness_proportionate':
-      return select_parents_by_fitness_proportionate(self._current_population, seed)
-
-    if parent_selection_method == 'roulette':
-      return select_parents_by_roulette(self._current_population, seed)
-
-    if parent_selection_method == 'tournament':
-      return select_parents_by_tournament(
-        self._current_population,
-        seed,
-        10,
-        minimize
-      )
-
-    raise Exception('Parent selection method not allowed')
-
-  def _validate_parents_selection_methods(
-    self,
-    parent_selection_method
-  ):
-    if parent_selection_method in ['fitness_proportionate', 'roulette', 'tournament']:
-      return
-
-    raise Exception('Method not allowed')
+    return select_parents(
+      self._current_population,
+      seed,
+      parent_selection_method,
+      minimize
+    )
 
   def _do_crossover_using_a_method(
     self,
@@ -437,16 +418,9 @@ class Population():
     parent_selection_method,
     minimize: bool
   ):
-    if crossover_method == 'one_point':
-      crossover_function = crossover_one_point
-    elif crossover_method == 'two_points':
-      crossover_function = crossover_two_points
-    elif crossover_method == 'uniform':
-      crossover_function = crossover_uniform
-    else:
-      raise Exception('Crossover method not allowed')
+    crossover_function = self._get_crossover_function(crossover_method)
 
-    parents = self._generate_parents_using_a_method(
+    parents = self._select_parents(
       seed,
       parent_selection_method,
       minimize
@@ -464,20 +438,20 @@ class Population():
       self._variables_array
     )
 
-  def _validate_crossover_methods(
+  def _get_crossover_function(
     self,
     crossover_method
   ):
-    if crossover_method in ['one_point', 'uniform', 'two_points']:
-      return
+    crossover_functions = {
+      'one_point': crossover_one_point,
+      'two_points': crossover_two_points,
+      'uniform': crossover_uniform
+    }
 
-    raise Exception('Crossover method not allowed')
-
-  def _validate_mutation_methods(
-    self,
-    mutation_method
-  ):
-    validate_mutation_method(mutation_method)
+    try:
+      return crossover_functions[crossover_method]
+    except KeyError as exc:
+      raise Exception('Crossover method not allowed') from exc
 
   def _population_fitness_average(self) -> float:
     return float(np.mean(
@@ -561,9 +535,9 @@ class Population():
       the solution for each given variable, the result calculated for the
       obtained solution and the average of the fitness per each generation.
     """
-    self._validate_parents_selection_methods(PARENT_SELECTION_METHOD)
-    self._validate_crossover_methods(CROSSOVER_METHOD)
-    self._validate_mutation_methods(MUTATION_METHOD)
+    validate_parent_selection_method(PARENT_SELECTION_METHOD)
+    self._get_crossover_function(CROSSOVER_METHOD)
+    validate_mutation_method(MUTATION_METHOD)
 
     self._select_initial_population()
     start = time()

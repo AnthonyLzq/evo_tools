@@ -62,3 +62,19 @@ Run only the canonical algorithm tests with:
 ```bash
 python -m pytest test/test_canonical_algorithm.py -v
 ```
+
+## Canonical algorithm configuration
+
+The canonical algorithm currently supports these parent selection methods:
+
+- `fitness_proportionate`
+- `roulette`
+- `tournament`
+
+These values are defined in `evo_tools.selection.PARENT_SELECTION_METHODS` and
+re-exported from `evo_tools`, so library consumers can import the supported
+options instead of relying on undocumented string literals.
+
+```python
+from evo_tools import PARENT_SELECTION_METHODS
+```

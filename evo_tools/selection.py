@@ -5,6 +5,46 @@ import numpy as np
 
 from evo_tools.models import Individual
 
+PARENT_SELECTION_METHODS = (
+  'fitness_proportionate',
+  'roulette',
+  'tournament'
+)
+
+def validate_parent_selection_method(parent_selection_method: str) -> None:
+  if parent_selection_method in PARENT_SELECTION_METHODS:
+    return
+
+  raise Exception('Parent selection method not allowed')
+
+def select_parents(
+  population: List[Individual],
+  seed: float,
+  parent_selection_method: str,
+  minimize: bool
+) -> List[Tuple[Individual, Individual]]:
+  parent_selection_strategies = {
+    PARENT_SELECTION_METHODS[0]: lambda: select_parents_by_fitness_proportionate(
+      population,
+      seed
+    ),
+    PARENT_SELECTION_METHODS[1]: lambda: select_parents_by_roulette(
+      population,
+      seed
+    ),
+    PARENT_SELECTION_METHODS[2]: lambda: select_parents_by_tournament(
+      population,
+      seed,
+      10,
+      minimize
+    )
+  }
+
+  try:
+    return parent_selection_strategies[parent_selection_method]()
+  except KeyError as exc:
+    raise Exception('Parent selection method not allowed') from exc
+
 def select_parents_by_fitness_proportionate(
   population: List[Individual],
   seed: float

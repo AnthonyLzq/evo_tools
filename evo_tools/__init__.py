@@ -17,3 +17,4 @@ from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual
 from evo_tools.models import SubPopulation
 from evo_tools.population import Population
+from evo_tools.selection import PARENT_SELECTION_METHODS
