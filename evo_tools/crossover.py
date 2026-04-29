@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 from evo_tools.bin_gray import generate_random_binary_with_a_len
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.phenotype import chromosome_to_numbers_repr, validate_binaries_in_range
+from evo_tools.phenotype import build_individual, validate_binaries_in_range
 
 
 def _build_child(
@@ -16,14 +16,14 @@ def _build_child(
   parsed_function,
   variables_array: List[str]
 ) -> Individual:
-  return Individual(
+  return build_individual(
     binary,
     gray,
-    0,
     bits,
-    chromosome_to_numbers_repr(binary, bits, sub_populations, precision),
+    sub_populations,
+    precision,
     parsed_function,
-    variables_array.copy()
+    variables_array
   )
 
 

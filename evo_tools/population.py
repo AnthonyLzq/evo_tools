@@ -15,7 +15,7 @@ from evo_tools.crossover import crossover_one_point, crossover_two_points, cross
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import apply_mutation, validate_mutation_method
-from evo_tools.phenotype import chromosome_to_numbers_repr, decode_binary_segments, \
+from evo_tools.phenotype import build_individual, decode_binary_segments, \
   validate_binaries_in_range
 from evo_tools.scoring import assign_scores, sort_population_by_score
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
@@ -213,14 +213,15 @@ class Population():
             numbers += f'{get_float_from_custom_representation(current_sample[i])}]'
 
         self._initial_population.append(
-          Individual(
+          build_individual(
             binary,
             gray,
-            0,
             bits,
-            numbers,
+            self._sub_populations,
+            self._precision,
             self._parsed_function,
-            self._variables_array.copy()
+            self._variables_array,
+            numbers
           )
         )
 
@@ -339,19 +340,14 @@ class Population():
           )
 
           if are_binaries_valid:
-            mutated_child = Individual(
+            mutated_child = build_individual(
               binary,
               gray,
-              0,
               bits,
-              chromosome_to_numbers_repr(
-                binary,
-                bits,
-                self._sub_populations,
-                self._precision
-              ),
+              self._sub_populations,
+              self._precision,
               self._parsed_function,
-              self._variables_array.copy()
+              self._variables_array
             )
             mutated_children.pop()
             mutated_children.append(mutated_child)

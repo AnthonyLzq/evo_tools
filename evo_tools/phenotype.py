@@ -2,7 +2,7 @@ from typing import List, Tuple, Union
 
 from evo_tools.bin_gray import binary_to_float
 from evo_tools.helpers import sub_strings_by_array
-from evo_tools.models import SubPopulation
+from evo_tools.models import Individual, SubPopulation
 
 def validate_binaries_in_range(
   binaries: List[List[str]],
@@ -53,3 +53,31 @@ def chromosome_to_numbers_repr(
   decoded_strings, _ = decode_binary_segments(binaries, sub_populations, precision)
 
   return '[' + ', '.join(decoded_strings) + ']'
+
+def build_individual(
+  binary: str,
+  gray: str,
+  bits: List[int],
+  sub_populations: List[SubPopulation],
+  precision: Union[float, int],
+  parsed_function,
+  variables_array: List[str],
+  numbers_repr: Union[str, None] = None
+) -> Individual:
+  if numbers_repr is None:
+    numbers_repr = chromosome_to_numbers_repr(
+      binary,
+      bits,
+      sub_populations,
+      precision
+    )
+
+  return Individual(
+    binary,
+    gray,
+    0,
+    bits,
+    numbers_repr,
+    parsed_function,
+    variables_array.copy()
+  )
