@@ -3,8 +3,9 @@ from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
 
-from evo_tools.bin_gray import range_of_numbers_binary_and_gray
 from evo_tools.crossover import validate_crossover_method
+from evo_tools.domain import build_sub_populations, resolve_max_sample_size, \
+  validate_variable_count
 from evo_tools.generation import initialize_canonical_state, run_canonical_iteration
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import validate_mutation_method
@@ -127,38 +128,13 @@ class Population():
 
     p10 = 1 if precision == 1 else pow(precision, -1)
     self._n_decimal_digits = int(round(log(p10, 10)))
-    self._build_sub_populations(ranges)
-    self._max_sample_size = self._resolve_max_sample_size()
-    self._validate_variable_count()
-
-  def _build_sub_populations(
-    self,
-    ranges: List[Tuple[Union[float, int], Union[float, int]]]
-  ) -> None:
-    for rng in ranges:
-      sub_population_range, bits = range_of_numbers_binary_and_gray(
-        rng,
-        self._precision,
-        self._sample_size
-      )
-      self._sub_populations.append(
-        SubPopulation(rng, sub_population_range, bits)
-      )
-
-  def _resolve_max_sample_size(self) -> int:
-    max_sample_size = len(self._sub_populations[0].numbers)
-
-    for sub_population in self._sub_populations:
-      sub_population_size = len(sub_population.numbers)
-
-      if sub_population_size < max_sample_size:
-        max_sample_size = sub_population_size
-
-    return max_sample_size
-
-  def _validate_variable_count(self) -> None:
-    if (len(self._variables_array) != len(self._sub_populations)):
-      raise Exception('Variables size does not match the number of ranges')
+    self._sub_populations = build_sub_populations(
+      ranges,
+      self._precision,
+      self._sample_size
+    )
+    self._max_sample_size = resolve_max_sample_size(self._sub_populations)
+    validate_variable_count(self._variables_array, self._sub_populations)
 
   def _get_current_population(self) -> List[Individual]:
     """
