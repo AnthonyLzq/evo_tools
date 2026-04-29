@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 from sympy import Piecewise, symbols, sympify
 from unittest.mock import patch
@@ -169,12 +167,15 @@ def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
   rank_current_population(population, False)
   captured = {}
 
-  def fake_choice(total_population, size, p):
-    captured['p'] = p.tolist()
+  def fake_choice(population_size, pair_count, probabilities):
+    captured['p'] = probabilities.tolist()
 
     return np.array([[0, 1]])
 
-  with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
+  with patch(
+    'evo_tools.selection.sample_index_pairs_by_probabilities',
+    side_effect = fake_choice
+  ):
     select_parents_by_roulette(population._current_population, 1)
 
   probabilities_by_objective = sorted(
@@ -190,12 +191,15 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
   rank_current_population(population, False)
   captured = {}
 
-  def fake_choice(total_population, size, p):
-    captured['p'] = p.tolist()
+  def fake_choice(population_size, pair_count, probabilities):
+    captured['p'] = probabilities.tolist()
 
     return np.array([[0, 1]])
 
-  with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
+  with patch(
+    'evo_tools.selection.sample_index_pairs_by_probabilities',
+    side_effect = fake_choice
+  ):
     select_parents_by_fitness_proportionate(population._current_population, 1)
 
   probabilities_by_objective = sorted(
@@ -221,7 +225,7 @@ def test_roulette_selection_drops_duplicate_and_self_pairs() -> None:
   }
 
   with patch(
-    'evo_tools.selection.np.random.choice',
+    'evo_tools.selection.sample_index_pairs_by_probabilities',
     return_value = np.array([[10, 11], [10, 11], [11, 11], [2, 10]])
   ):
     parents = select_parents_by_roulette(population._current_population, 4)
@@ -247,7 +251,7 @@ def test_fitness_proportionate_selection_drops_duplicate_and_self_pairs() -> Non
   }
 
   with patch(
-    'evo_tools.selection.np.random.choice',
+    'evo_tools.selection.sample_index_pairs_by_probabilities',
     return_value = np.array([[10, 11], [10, 11], [11, 11], [2, 10]])
   ):
     parents = select_parents_by_fitness_proportionate(
@@ -341,8 +345,6 @@ def test_canonical_algorithm_solves_reference_knapsack_case() -> None:
     (1000 * (total_weight - capacity), True)
   )
 
-  random.seed(4)
-  np.random.seed(4)
   population = Population(
     [(0, 1)] * len(variables),
     1,
@@ -357,7 +359,8 @@ def test_canonical_algorithm_solves_reference_knapsack_case() -> None:
     ITERATIONS = 5,
     MINIMIZE = False,
     SEED = 1.5,
-    PARENT_SELECTION_METHOD = 'tournament'
+    PARENT_SELECTION_METHOD = 'tournament',
+    RANDOM_SEED = 4
   )
   chosen = [int(solution[f'x{index}']) for index in range(1, 11)]
   weight = sum(weight * bit for weight, bit in zip(weights, chosen))

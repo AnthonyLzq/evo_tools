@@ -7,7 +7,6 @@ from evo_tools.canonical import finalize_canonical_result, \
 from evo_tools.domain import build_sub_populations, validate_variable_count
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.randomness import seed_random_generators
-from evo_tools.randomness import seed_random_generators
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
 # CrossoverMethods = Literal['one_point', 'two_points', 'uniform']
@@ -173,8 +172,8 @@ class Population():
       crossover. Defaults to 'one_point'.
       MUTATION_METHOD (MutationMethods, optional): a method to mutate. Default
       to 'one_point'.
-      RANDOM_SEED (int | None, optional): seed applied to both `random` and
-      `numpy.random` before the algorithm runs. Defaults to None.
+      RANDOM_SEED (int | None, optional): seed applied to the internal NumPy
+      random generator before the algorithm runs. Defaults to None.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
