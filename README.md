@@ -45,22 +45,22 @@ Install the test dependencies:
 python -m pip install pytest pytest-mock scipy
 ```
 
-Run the full test suite with:
+Run the full test suite directly with pytest:
 
 ```bash
-python -m pytest test -v
+python -m pytest -q
 ```
 
 Run only the `bin_gray` helper tests with:
 
 ```bash
-python -m pytest test/test_bin_gray.py -v
+python -m pytest test/test_bin_gray.py -q
 ```
 
 Run only the canonical algorithm tests with:
 
 ```bash
-python -m pytest test/test_canonical_algorithm.py -v
+python -m pytest test/test_canonical_algorithm.py -q
 ```
 
 ## Canonical algorithm configuration

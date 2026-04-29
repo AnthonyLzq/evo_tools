@@ -19,14 +19,6 @@ setup(
   project_urls={
     'Source Code': 'https://gitlab.com/AnthonyLzq/evo_tools'
   },
-  entry_points={
-    'console_scripts': [
-      'test_algorithm=test.setup:algorithm',
-      'test_bin_gray=test.setup:bin_gray'
-    ]
-  },
-  setup_requires=['pytest-runner'],
-  tests_require=['pytest', 'pytest-mock'],
   classifiers=[
     'Development Status :: 1 - Planning',
     'Intended Audience :: Developers',
