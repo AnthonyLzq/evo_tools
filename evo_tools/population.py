@@ -8,12 +8,12 @@ from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
 from evo_tools.crossover import generate_children, validate_crossover_method
+from evo_tools.generation import select_next_generation
 from evo_tools.models import Individual, SubPopulation
-from evo_tools.mutation import mutate_children, validate_mutation_method
+from evo_tools.mutation import validate_mutation_method
 from evo_tools.phenotype import build_individual, build_solution, decode_individual
 from evo_tools.reporting import print_final_summary, print_iteration_summary
-from evo_tools.scoring import population_fitness_average, population_score_stats, \
-  rank_population, selection_strength
+from evo_tools.scoring import population_fitness_average, rank_population
 from evo_tools.selection import validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -257,84 +257,6 @@ class Population():
       print(self._initial_population)
       print()
 
-  def _update_current_population(
-    self,
-    new_population: List[Individual],
-    minimize: bool
-  ) -> None:
-    """
-    Method that updates the current sample, after crossover or mutation.
-
-    Args:
-      new_population (List[Individual])
-    """
-    if (len(new_population) > self._sample_size):
-      self._current_population = new_population[:self._sample_size]
-    else:
-      self._current_population = new_population
-
-    rank_population(
-      self._current_population,
-      minimize,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-    self._refresh_best_individual()
-
-  def _compose_next_population(
-    self,
-    mutated_individuals: List[Individual],
-    sample_size: int
-  ) -> List[Individual]:
-    return self._current_population[
-      :len(self._current_population) - len(mutated_individuals)
-    ] + mutated_individuals[:sample_size]
-
-  def _select_next_generation(
-    self,
-    individuals: List[Individual],
-    minimize: bool,
-    sample_size: int,
-    mutation_method: str
-  ) -> None:
-    mutated_individuals = mutate_children(
-      individuals,
-      mutation_method,
-      self._mutation_rate,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-    rank_population(
-      mutated_individuals,
-      minimize,
-      self._sub_populations,
-      self._precision,
-      self._parsed_function,
-      self._variables_array,
-      self._print
-    )
-
-    score_mean_before_selection, score_std_before_selection = population_score_stats(
-      self._current_population
-    )
-
-    self._update_current_population(
-      self._compose_next_population(mutated_individuals, sample_size),
-      minimize
-    )
-
-    self._selection_strength = selection_strength(
-      self._current_population,
-      score_mean_before_selection,
-      score_std_before_selection
-    )
-
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
@@ -378,12 +300,20 @@ class Population():
       self._parsed_function,
       self._variables_array
     )
-    self._select_next_generation(
+    self._current_population, self._selection_strength = select_next_generation(
+      self._current_population,
       children,
       minimize,
       self._sample_size,
-      mutation_method
+      mutation_method,
+      self._mutation_rate,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
     )
+    self._refresh_best_individual()
     scores.append(self._best_individual.get_score())
     fitness_avg_list.append(population_fitness_average(self._current_population))
 
