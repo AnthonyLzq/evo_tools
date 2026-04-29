@@ -1,4 +1,3 @@
-from math import log
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 
@@ -41,11 +40,11 @@ class Population():
   _mutation_rate: float
     Probability to mutate children.
 
-  _variables: str
-    The variables to be used in the objective function, separated by spaces.
+  _variables_array: List[str]
+    Parsed variable names used across the extracted canonical helpers.
 
-  _function: exp
-    The function to be minimized of maximized.
+  _parsed_function: exp
+    Sympified objective function reused across initialization and evolution.
 
   _print: bool = False
     Whether or not should print the output in the methods.
@@ -111,10 +110,8 @@ class Population():
     self._precision = precision
     self._crossover_rate = crossover_rate
     self._mutation_rate = mutation_rate
-    self._variables = variables
-    self._function = function
-    self._variables_array = self._variables.split()
-    self._parsed_function = sympify(str(self._function))
+    self._variables_array = variables.split()
+    self._parsed_function = sympify(str(function))
     self._print = _print
     self._current_population: List[Individual] = []
     self._initial_population: List[Individual] = []
@@ -122,8 +119,6 @@ class Population():
     self._selection_strength: float = 0
     self._sample_size = sample_size
 
-    p10 = 1 if precision == 1 else pow(precision, -1)
-    self._n_decimal_digits = int(round(log(p10, 10)))
     self._sub_populations = build_sub_populations(
       ranges,
       self._precision,
@@ -131,15 +126,6 @@ class Population():
     )
     self._max_sample_size = resolve_max_sample_size(self._sub_populations)
     validate_variable_count(self._variables_array, self._sub_populations)
-
-  def _get_current_population(self) -> List[Individual]:
-    """
-    Returns a copy of the current Population data.
-
-    Returns:
-      List[Individual]
-    """
-    return self._current_population.copy()
 
   def canonical_algorithm(
     self,

@@ -35,7 +35,7 @@ def build_population(rng, precision, function = 'x', sample_size = None):
 
 def rank_current_population(population, minimize):
   rank_population(
-    population._get_current_population(),
+    population._current_population.copy(),
     minimize,
     population._sub_populations,
     population._precision,
@@ -45,7 +45,7 @@ def rank_current_population(population, minimize):
 
 def test_fitness_scores_follow_optimization_direction() -> None:
   population = build_population((0, 2), 1)
-  current_population = population._get_current_population()
+  current_population = population._current_population.copy()
 
   rank_current_population(population, True)
   minimize_scores = {
@@ -64,7 +64,7 @@ def test_fitness_scores_follow_optimization_direction() -> None:
 
 def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)
-  current_population = population._get_current_population()
+  current_population = population._current_population.copy()
   rank_current_population(population, False)
   captured = {}
 
@@ -85,7 +85,7 @@ def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
 
 def test_fitness_proportionate_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)
-  current_population = population._get_current_population()
+  current_population = population._current_population.copy()
   rank_current_population(population, False)
   captured = {}
 
@@ -106,7 +106,7 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
 
 def test_tournament_selection_uses_raw_objective_values() -> None:
   population = build_population((-2, 1), 1)
-  current_population = population._get_current_population()
+  current_population = population._current_population.copy()
   rank_current_population(population, False)
 
   maximize_parents = select_parents_by_tournament(
