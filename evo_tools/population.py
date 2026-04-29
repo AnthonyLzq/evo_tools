@@ -1,16 +1,17 @@
 import numpy as np
 import pandas as pd
 from json import loads
-from random import choice, random, sample
+from random import random, sample
 from math import log
 from sympy import exp, sympify
 from typing import Dict, List, Tuple, Union
 from time import time
 
 from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits, \
-  range_of_numbers_binary_and_gray, generate_random_binary_with_a_len, \
+  range_of_numbers_binary_and_gray, \
   get_float_from_custom_representation, get_binary_from_custom_representation, \
   get_gray_from_custom_representation
+from evo_tools.crossover import crossover_one_point, crossover_two_points, crossover_uniform
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import apply_mutation, validate_mutation_method
@@ -318,298 +319,6 @@ class Population():
   ):
     return select_parents_by_tournament(self._current_population, seed, K, minimize)
 
-  def _crossover_one_point(
-    self,
-    seed: float,
-    parent_selection_method,
-    minimize: bool
-  ) -> List[Individual]:
-    """
-    Method that creates n children from 2 * n parents combining their genotype
-    based in the crossover probability.
-
-    Raises:
-      Exception: when the initial data wasn't selected
-
-    Returns:
-      List[Individual]: n children
-    """
-    parents = self._generate_parents_using_a_method(
-      seed,
-      parent_selection_method,
-      minimize
-    )
-
-    if len(parents) == 0:
-      return []
-
-    total_bits = parents[0][0].get_total_bits()
-    bits = parents[0][0].get_bits()
-    children: List[Individual] = []
-
-    for p_parent in parents:
-      if random() < self._crossover_rate:
-        points = [i for i in range(0, total_bits)]
-        p1, p2 = p_parent
-        binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
-        gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
-        binary_children: List[str] = []
-        gray_children: List[str] = []
-        attempts = 0
-        are_first_binaries_valid = False
-        are_second_binaries_valid = False
-
-        while True:
-          point = choice(points)
-          binary_children = [
-            binary_p1[:point] + binary_p2[point:],
-            binary_p2[:point] + binary_p1[point:]
-          ]
-          gray_children = [
-            gray_p1[:point] + gray_p2[point:],
-            gray_p2[:point] + gray_p1[point:]
-          ]
-          first_binaries_to_validate = [
-            sub_strings_by_array(binary_children[0], bits)
-          ]
-          second_binaries_to_validate = [
-            sub_strings_by_array(binary_children[1], bits)
-          ]
-          are_first_binaries_valid = validate_binaries_in_range(
-            first_binaries_to_validate,
-            self._sub_populations,
-            self._precision
-          )
-          are_second_binaries_valid = validate_binaries_in_range(
-            second_binaries_to_validate,
-            self._sub_populations,
-            self._precision
-          )
-
-          if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
-            break
-          else:
-            points = [p for p in points if p != point]
-
-            if len(points) == 0:
-              break
-
-          attempts += 1
-
-        if are_first_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[0],
-              gray_children[0],
-              0,
-              bits,
-              self._get_fen(binary_children[0], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-        if are_second_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[1],
-              gray_children[1],
-              0,
-              bits,
-              self._get_fen(binary_children[1], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-    return children
-
-  def _crossover_two_points(
-    self,
-    seed: float,
-    parent_selection_method,
-    minimize: bool
-  ) -> List[Individual]:
-    parents = self._generate_parents_using_a_method(
-      seed,
-      parent_selection_method,
-      minimize
-    )
-
-    if len(parents) == 0:
-      return []
-
-    total_bits = parents[0][0].get_total_bits()
-    bits = parents[0][0].get_bits()
-    children: List[Individual] = []
-
-    for p_parent in parents:
-      if random() < self._crossover_rate:
-        points = [i for i in range(0, total_bits)]
-        p1, p2 = p_parent
-        binary_p1, binary_p2 = p1.get_binary(), p2.get_binary()
-        gray_p1, gray_p2 = p1.get_gray(), p2.get_gray()
-        binary_children: List[str] = []
-        gray_children: List[str] = []
-        attempts = 0
-        are_first_binaries_valid = False
-        are_second_binaries_valid = False
-
-        while True:
-          p1, p2 = sample(points, 2)
-          p_max, p_min = p1, p2
-
-          if p_max < p2:
-            p_max = p2
-
-          if p_min > p1:
-            p_min = p1
-
-          binary_children = [
-            binary_p1[:p_min] + binary_p2[p_min:p_max] + binary_p1[p_max:],
-            binary_p2[:p_min] + binary_p1[p_min:p_max] + binary_p2[p_max:]
-          ]
-          gray_children = [
-            gray_p1[:p_min] + gray_p2[p_min:p_max] + gray_p1[p_max:],
-            gray_p2[:p_min] + gray_p1[p_min:p_max] + gray_p2[p_max:]
-          ]
-          first_binaries_to_validate = [
-            sub_strings_by_array(binary_children[0], bits)
-          ]
-          second_binaries_to_validate = [
-            sub_strings_by_array(binary_children[1], bits)
-          ]
-          are_first_binaries_valid = validate_binaries_in_range(
-            first_binaries_to_validate,
-            self._sub_populations,
-            self._precision
-          )
-          are_second_binaries_valid = validate_binaries_in_range(
-            second_binaries_to_validate,
-            self._sub_populations,
-            self._precision
-          )
-
-          if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
-            break
-
-          attempts += 1
-
-        if are_first_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[0],
-              gray_children[0],
-              0,
-              bits,
-              self._get_fen(binary_children[0], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-        if are_second_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[1],
-              gray_children[1],
-              0,
-              bits,
-              self._get_fen(binary_children[1], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-    return children
-
-  def _crossover_uniform(
-    self,
-    seed: float,
-    parent_selection_method,
-    minimize: bool
-  ):
-    parents = self._generate_parents_using_a_method(
-      seed,
-      parent_selection_method,
-      minimize
-    )
-
-    if len(parents) == 0:
-      return []
-
-    total_bits = parents[0][0].get_total_bits()
-    bits = parents[0][0].get_bits()
-    children: List[Individual] = []
-
-    for p_parent in parents:
-      if random() < self._crossover_rate:
-        p0, p1 = p_parent
-        binary_p0, binary_p1 = p0.get_binary(), p1.get_binary()
-        gray_p0, gray_p1 = p0.get_gray(), p1.get_gray()
-        mask = generate_random_binary_with_a_len(total_bits)
-        binary_children: List[str] = ['', '']
-        gray_children: List[str] = ['', '']
-
-        for i, mask_element in enumerate(mask):
-          if mask_element == '0':
-            binary_children[0] += binary_p0[i]
-            gray_children[0] += gray_p0[i]
-
-            binary_children[1] += binary_p1[i]
-            gray_children[1] += gray_p1[i]
-          else:
-            binary_children[0] += binary_p1[i]
-            gray_children[0] += gray_p1[i]
-
-            binary_children[1] += binary_p0[i]
-            gray_children[1] += gray_p0[i]
-
-        first_binaries_to_validate = [
-          sub_strings_by_array(binary_children[0], bits)
-        ]
-        second_binaries_to_validate = [
-          sub_strings_by_array(binary_children[1], bits)
-        ]
-        are_first_binaries_valid = validate_binaries_in_range(
-          first_binaries_to_validate,
-          self._sub_populations,
-          self._precision
-        )
-        are_second_binaries_valid = validate_binaries_in_range(
-          second_binaries_to_validate,
-          self._sub_populations,
-          self._precision
-        )
-
-        if are_first_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[0],
-              gray_children[0],
-              0,
-              bits,
-              self._get_fen(binary_children[0], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-        if are_second_binaries_valid:
-          children.append(
-            Individual(
-              binary_children[1],
-              gray_children[1],
-              0,
-              bits,
-              self._get_fen(binary_children[1], bits), # type: ignore
-              sympify(str(self._function)),
-              self._variables.split()
-            )
-          )
-
-    return children
-
   def _mutation(
     self,
     children: List[Individual],
@@ -772,15 +481,31 @@ class Population():
     minimize: bool
   ):
     if crossover_method == 'one_point':
-      return self._crossover_one_point(seed, parent_selection_method, minimize)
+      crossover_function = crossover_one_point
+    elif crossover_method == 'two_points':
+      crossover_function = crossover_two_points
+    elif crossover_method == 'uniform':
+      crossover_function = crossover_uniform
+    else:
+      raise Exception('Crossover method not allowed')
 
-    if crossover_method == 'two_points':
-      return self._crossover_two_points(seed, parent_selection_method, minimize)
+    parents = self._generate_parents_using_a_method(
+      seed,
+      parent_selection_method,
+      minimize
+    )
 
-    if crossover_method ==  'uniform':
-      return self._crossover_uniform(seed, parent_selection_method, minimize)
+    if len(parents) == 0:
+      return []
 
-    raise Exception('Crossover method not allowed')
+    return crossover_function(
+      parents,
+      self._crossover_rate,
+      self._sub_populations,
+      self._precision,
+      self._function,
+      self._variables
+    )
 
   def _validate_crossover_methods(
     self,
