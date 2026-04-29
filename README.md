@@ -37,6 +37,12 @@ Install the package in editable mode:
 python -m pip install --editable .
 ```
 
+For day-to-day development with packaging and test tooling included:
+
+```bash
+python -m pip install --editable ".[dev]"
+```
+
 ### Testing
 
 Install the package with the test extra:

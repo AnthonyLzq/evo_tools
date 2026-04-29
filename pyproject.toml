@@ -43,6 +43,12 @@ test = [
   "pytest-mock",
   "scipy",
 ]
+dev = [
+  "build",
+  "pytest",
+  "pytest-mock",
+  "scipy",
+]
 
 [tool.setuptools.packages.find]
 include = ["evo_tools*"]
