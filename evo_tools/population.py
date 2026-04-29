@@ -177,60 +177,21 @@ class Population():
       )
 
     if len(self._initial_population) > 0:
-      if self._print:
-        print('\nInitial population:\n')
-        print(self._initial_population)
-
+      self._print_initial_population()
       return self._initial_population.copy()
-    else:
-      samples: List[Tuple[List[str], int]] = []
 
-      for sub_population in self._sub_populations:
-        samples.append((
-          sample(sub_population.numbers, self._sample_size),
-          sub_population.bits
-        ))
+    samples = self._sample_sub_populations()
+    first_sample, _ = samples[0]
 
-      first_sample, _ = samples[0]
+    for i, _ in enumerate(first_sample):
+      self._initial_population.append(
+        self._build_initial_individual(samples, i)
+      )
 
-      for i, _ in enumerate(first_sample):
-        binary = ''
-        gray = ''
-        numbers = '['
-        bits: List[int] = []
+    self._current_population = self._initial_population.copy()
+    self._print_initial_population()
 
-        for j, s in enumerate(samples):
-          current_sample, current_bits = s
-          bits.append(current_bits)
-          binary += get_binary_from_custom_representation(current_sample[i])
-          gray += get_gray_from_custom_representation(current_sample[i])
-
-          if j != len(samples) - 1:
-            numbers += f'{get_float_from_custom_representation(current_sample[i])}, '
-          else:
-            numbers += f'{get_float_from_custom_representation(current_sample[i])}]'
-
-        self._initial_population.append(
-          build_individual(
-            binary,
-            gray,
-            bits,
-            self._sub_populations,
-            self._precision,
-            self._parsed_function,
-            self._variables_array,
-            numbers
-          )
-        )
-
-      self._current_population = self._initial_population.copy()
-
-      if self._print:
-        print('\nInitial population:\n')
-        print(self._initial_population)
-        print()
-
-      return self._current_population.copy()
+    return self._current_population.copy()
 
   def _get_current_population(self) -> List[Individual]:
     """
@@ -240,6 +201,52 @@ class Population():
       List[Individual]
     """
     return self._current_population.copy()
+
+  def _sample_sub_populations(self) -> List[Tuple[List[str], int]]:
+    return [
+      (
+        sample(sub_population.numbers, self._sample_size),
+        sub_population.bits
+      )
+      for sub_population in self._sub_populations
+    ]
+
+  def _build_initial_individual(
+    self,
+    samples: List[Tuple[List[str], int]],
+    index: int
+  ) -> Individual:
+    selected_numbers = [current_sample[index] for current_sample, _ in samples]
+    bits = [current_bits for _, current_bits in samples]
+    binary = ''.join(
+      get_binary_from_custom_representation(number)
+      for number in selected_numbers
+    )
+    gray = ''.join(
+      get_gray_from_custom_representation(number)
+      for number in selected_numbers
+    )
+    numbers = '[' + ', '.join(
+      get_float_from_custom_representation(number)
+      for number in selected_numbers
+    ) + ']'
+
+    return build_individual(
+      binary,
+      gray,
+      bits,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      numbers
+    )
+
+  def _print_initial_population(self) -> None:
+    if self._print:
+      print('\nInitial population:\n')
+      print(self._initial_population)
+      print()
 
   def _rank_population(
     self,
