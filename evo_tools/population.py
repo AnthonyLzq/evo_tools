@@ -10,11 +10,10 @@ from evo_tools.bin_gray import range_of_numbers_binary_and_gray, \
 from evo_tools.crossover import generate_children, validate_crossover_method
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import mutate_children, validate_mutation_method
-from evo_tools.phenotype import build_individual, build_solution, \
-  decode_individual, evaluate_individual_objective
+from evo_tools.phenotype import build_individual, build_solution, decode_individual
 from evo_tools.reporting import print_final_summary, print_iteration_summary
-from evo_tools.scoring import assign_scores, population_fitness_average, \
-  population_score_stats, selection_strength, sort_population_by_score
+from evo_tools.scoring import population_fitness_average, population_score_stats, \
+  rank_population, selection_strength
 from evo_tools.selection import validate_parent_selection_method
 
 # ParentSelectionMethods = Literal['fitness_proportionate', 'roulette', 'tournament']
@@ -258,14 +257,6 @@ class Population():
       print(self._initial_population)
       print()
 
-  def _rank_population(
-    self,
-    population_sample: List[Individual],
-    minimize: bool
-  ) -> None:
-    self._fitness(population_sample, minimize)
-    sort_population_by_score(population_sample)
-
   def _update_current_population(
     self,
     new_population: List[Individual],
@@ -282,7 +273,15 @@ class Population():
     else:
       self._current_population = new_population
 
-    self._rank_population(self._current_population, minimize)
+    rank_population(
+      self._current_population,
+      minimize,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
+    )
     self._refresh_best_individual()
 
   def _compose_next_population(
@@ -311,7 +310,15 @@ class Population():
       self._variables_array,
       self._print
     )
-    self._rank_population(mutated_individuals, minimize)
+    rank_population(
+      mutated_individuals,
+      minimize,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
+    )
 
     score_mean_before_selection, score_std_before_selection = population_score_stats(
       self._current_population
@@ -328,44 +335,6 @@ class Population():
       score_std_before_selection
     )
 
-  def _fitness(self, population_sample: List[Individual], minimize: bool) -> None:
-    """
-    Method that calculates the genotype fitness of a given function for the
-    current population.
-
-    Args:
-      population_sample (List[Individual]): a subset from the current population
-      to calculate its fitness.
-      minimize (bool, optional): a boolean that indicates if the problem
-      is it a minimization or maximization problem. Defaults to True.
-    """
-    if len(population_sample) == 0:
-      return
-
-    function_evaluations: List[float] = []
-
-    for i, individual in enumerate(population_sample):
-      individual.set_score(0)
-      individual.set_objective_value(None)
-      objective_value = evaluate_individual_objective(
-        individual,
-        i,
-        self._sub_populations,
-        self._precision,
-        self._parsed_function,
-        self._variables_array,
-        self._print
-      )
-
-      if objective_value is not None:
-        function_evaluations.append(objective_value)
-        individual.set_objective_value(objective_value)
-
-    if len(function_evaluations) == 0:
-      return
-
-    assign_scores(population_sample, function_evaluations, minimize)
-
   def _refresh_best_individual(self) -> None:
     self._best_individual = self._current_population[0]
 
@@ -374,7 +343,15 @@ class Population():
     minimize: bool
   ) -> Tuple[int, List[float], List[float]]:
     self._select_initial_population()
-    self._rank_population(self._current_population, minimize)
+    rank_population(
+      self._current_population,
+      minimize,
+      self._sub_populations,
+      self._precision,
+      self._parsed_function,
+      self._variables_array,
+      self._print
+    )
     self._refresh_best_individual()
 
     return 1, [], [population_fitness_average(self._current_population)]

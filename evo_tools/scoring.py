@@ -2,7 +2,8 @@ from typing import List, Tuple
 
 import numpy as np
 
-from evo_tools.models import Individual
+from evo_tools.models import Individual, SubPopulation
+from evo_tools.phenotype import evaluate_individual_objective
 
 def assign_scores(
   population_sample: List[Individual],
@@ -59,3 +60,39 @@ def selection_strength(
       (score_mean_after_selection - score_mean_before_selection) / score_std_before_selection
     )) if score_std_before_selection > 0 else 0.0
   )
+
+def rank_population(
+  population_sample: List[Individual],
+  minimize: bool,
+  sub_populations: List[SubPopulation],
+  precision,
+  parsed_function,
+  variables_array: List[str],
+  should_print: bool = False
+) -> None:
+  if len(population_sample) == 0:
+    return
+
+  objective_values: List[float] = []
+
+  for i, individual in enumerate(population_sample):
+    individual.set_score(0)
+    individual.set_objective_value(None)
+    objective_value = evaluate_individual_objective(
+      individual,
+      i,
+      sub_populations,
+      precision,
+      parsed_function,
+      variables_array,
+      should_print
+    )
+
+    if objective_value is not None:
+      objective_values.append(objective_value)
+      individual.set_objective_value(objective_value)
+
+  if len(objective_values) > 0:
+    assign_scores(population_sample, objective_values, minimize)
+
+  sort_population_by_score(population_sample)

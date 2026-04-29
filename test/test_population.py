@@ -3,6 +3,7 @@ from sympy import sympify
 from unittest.mock import patch
 
 from evo_tools.population import Population
+from evo_tools.scoring import rank_population
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
   select_parents_by_roulette, select_parents_by_tournament
 
@@ -21,17 +22,27 @@ def build_population(rng, precision, function = 'x', sample_size = None):
 
   return population
 
+def rank_current_population(population, minimize):
+  rank_population(
+    population._get_current_population(),
+    minimize,
+    population._sub_populations,
+    population._precision,
+    population._parsed_function,
+    population._variables_array
+  )
+
 def test_fitness_scores_follow_optimization_direction() -> None:
   population = build_population((0, 2), 1)
   current_population = population._get_current_population()
 
-  population._fitness(current_population, True)
+  rank_current_population(population, True)
   minimize_scores = {
     individual.get_fitness(): individual.get_score()
     for individual in current_population
   }
 
-  population._fitness(current_population, False)
+  rank_current_population(population, False)
   maximize_scores = {
     individual.get_fitness(): individual.get_score()
     for individual in current_population
@@ -43,7 +54,7 @@ def test_fitness_scores_follow_optimization_direction() -> None:
 def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)
   current_population = population._get_current_population()
-  population._fitness(current_population, False)
+  rank_current_population(population, False)
   captured = {}
 
   def fake_choice(total_population, size, p):
@@ -64,7 +75,7 @@ def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
 def test_fitness_proportionate_probabilities_follow_maximization_scores() -> None:
   population = build_population((0, 2), 1)
   current_population = population._get_current_population()
-  population._fitness(current_population, False)
+  rank_current_population(population, False)
   captured = {}
 
   def fake_choice(total_population, size, p):
@@ -85,7 +96,7 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
 def test_tournament_selection_uses_raw_objective_values() -> None:
   population = build_population((-2, 1), 1)
   current_population = population._get_current_population()
-  population._fitness(current_population, False)
+  rank_current_population(population, False)
 
   maximize_parents = select_parents_by_tournament(
     population._current_population,
