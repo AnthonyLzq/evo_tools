@@ -241,6 +241,14 @@ class Population():
     """
     return self._current_population.copy()
 
+  def _rank_population(
+    self,
+    population_sample: List[Individual],
+    minimize: bool
+  ) -> None:
+    self._fitness(population_sample, minimize)
+    sort_population_by_score(population_sample)
+
   def _update_current_population(
     self,
     new_population: List[Individual],
@@ -257,8 +265,7 @@ class Population():
     else:
       self._current_population = new_population
 
-    self._fitness(self._current_population, minimize)
-    sort_population_by_score(self._current_population)
+    self._rank_population(self._current_population, minimize)
 
   def _select(
     self,
@@ -268,8 +275,7 @@ class Population():
     mutation_method: str
   ) -> None:
     mutated_individuals = self._mutation(individuals, mutation_method)
-    self._fitness(mutated_individuals, minimize)
-    sort_population_by_score(mutated_individuals)
+    self._rank_population(mutated_individuals, minimize)
 
     # Calculate the mean and std of the population before the selection
     current_population_score = np.array([
@@ -556,8 +562,7 @@ class Population():
 
     self._select_initial_population()
     start = time()
-    self._fitness(self._current_population, MINIMIZE)
-    sort_population_by_score(self._current_population)
+    self._rank_population(self._current_population, MINIMIZE)
     self._best_individual = self._current_population[0]
     current_iteration = 1
     scores: List[float] = []
