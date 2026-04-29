@@ -14,6 +14,8 @@ from evo_tools.bin_gray import binary_to_float, binary_to_gray, format_to_n_bits
 from evo_tools.helpers import sub_strings_by_array
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.mutation import apply_mutation, validate_mutation_method
+from evo_tools.phenotype import chromosome_to_numbers_repr, decode_binary_segments, \
+  validate_binaries_in_range
 from evo_tools.scoring import assign_scores, sort_population_by_score
 from evo_tools.selection import select_parents_by_fitness_proportionate, \
   select_parents_by_roulette, select_parents_by_tournament
@@ -296,31 +298,6 @@ class Population():
 
     self._best_individual = self._current_population[0]
 
-  def _validate_binaries_in_range(self, binaries: List[List[str]]) -> bool:
-    """
-    Method that validates if a given list of binaries are in the domain.
-
-    Args:
-      binaries: List[List[str]]
-        List genotypes from each SubPopulation.
-
-    Returns:
-      bool: whether or not binaries are valid
-    """
-    for binary in binaries:
-      for i, gen in enumerate(binary):
-        try:
-          binary_to_float(
-            gen,
-            self._sub_populations[i].numbers_dict,
-            self._sub_populations[i].rng,
-            self._precision
-          )
-        except:
-          return False
-
-    return True
-
   def _parents_selection_by_fitness_proportionate(
     self,
     seed: float
@@ -398,11 +375,15 @@ class Population():
           second_binaries_to_validate = [
             sub_strings_by_array(binary_children[1], bits)
           ]
-          are_first_binaries_valid = self._validate_binaries_in_range(
-            first_binaries_to_validate
+          are_first_binaries_valid = validate_binaries_in_range(
+            first_binaries_to_validate,
+            self._sub_populations,
+            self._precision
           )
-          are_second_binaries_valid = self._validate_binaries_in_range(
-            second_binaries_to_validate
+          are_second_binaries_valid = validate_binaries_in_range(
+            second_binaries_to_validate,
+            self._sub_populations,
+            self._precision
           )
 
           if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
@@ -498,11 +479,15 @@ class Population():
           second_binaries_to_validate = [
             sub_strings_by_array(binary_children[1], bits)
           ]
-          are_first_binaries_valid = self._validate_binaries_in_range(
-            first_binaries_to_validate
+          are_first_binaries_valid = validate_binaries_in_range(
+            first_binaries_to_validate,
+            self._sub_populations,
+            self._precision
           )
-          are_second_binaries_valid = self._validate_binaries_in_range(
-            second_binaries_to_validate
+          are_second_binaries_valid = validate_binaries_in_range(
+            second_binaries_to_validate,
+            self._sub_populations,
+            self._precision
           )
 
           if are_first_binaries_valid or are_second_binaries_valid or attempts >= total_bits:
@@ -586,11 +571,15 @@ class Population():
         second_binaries_to_validate = [
           sub_strings_by_array(binary_children[1], bits)
         ]
-        are_first_binaries_valid = self._validate_binaries_in_range(
-          first_binaries_to_validate
+        are_first_binaries_valid = validate_binaries_in_range(
+          first_binaries_to_validate,
+          self._sub_populations,
+          self._precision
         )
-        are_second_binaries_valid = self._validate_binaries_in_range(
-          second_binaries_to_validate
+        are_second_binaries_valid = validate_binaries_in_range(
+          second_binaries_to_validate,
+          self._sub_populations,
+          self._precision
         )
 
         if are_first_binaries_valid:
@@ -654,8 +643,10 @@ class Population():
             sub_strings_by_array(binary, bits),
             sub_strings_by_array(gray, bits)
           ]
-          are_binaries_valid = self._validate_binaries_in_range(
-            binaries_to_validate
+          are_binaries_valid = validate_binaries_in_range(
+            binaries_to_validate,
+            self._sub_populations,
+            self._precision
           )
 
           if are_binaries_valid:
@@ -702,7 +693,6 @@ class Population():
     if len(population_sample) == 0:
       return
 
-    bits = population_sample[0].get_bits()
     function_evaluations: List[float] = []
 
     for i, individual in enumerate(population_sample):
@@ -713,22 +703,15 @@ class Population():
       if (self._print):
         print(f'Chromosome {i}: {chromosome}')
 
-      gens = sub_strings_by_array(chromosome, bits)
+      gens = sub_strings_by_array(chromosome, individual.get_bits())
       fens: List[float] = []
 
-      for i, gen in enumerate(gens):
-        try:
-          fen = float(
-            binary_to_float(
-              gen,
-              self._sub_populations[i].numbers_dict,
-              self._sub_populations[i].rng,
-              self._precision
-            )
-          )
-          fens.append(fen)
-        except:
-          pass
+      if validate_binaries_in_range([gens], self._sub_populations, self._precision):
+        _, fens = decode_binary_segments(
+          gens,
+          self._sub_populations,
+          self._precision
+        )
 
       if (self._print):
         print(f'  gens: {gens}')
@@ -815,31 +798,12 @@ class Population():
     validate_mutation_method(mutation_method)
 
   def _get_fen(self, binary_or_gray: str, bits: List[int]):
-    binaries = sub_strings_by_array(
+    return chromosome_to_numbers_repr(
       binary_or_gray,
-      bits
+      bits,
+      self._sub_populations,
+      self._precision
     )
-    numbers = '['
-
-    for i, binary in enumerate(binaries):
-      try:
-        fen = binary_to_float(
-          binary,
-          self._sub_populations[i].numbers_dict,
-          self._sub_populations[i].rng,
-          self._precision
-        )
-        numbers += f'{fen}, '
-      except:
-        pass
-
-    strToReplace = ', '
-    replacementStr = ']'
-    strToReplaceReversed = strToReplace[::-1]
-    replacementStrReversed = replacementStr[::-1]
-    numbers = numbers[::-1].replace(strToReplaceReversed, replacementStrReversed, 1)[::-1]
-
-    return numbers
 
   def canonical_algorithm(
     self,
@@ -965,19 +929,11 @@ class Population():
       self._best_individual.get_binary(),
       self._best_individual.get_bits()
     )
-    floats: List[str] = []
-
-    for i, binary in enumerate(binaries):
-      try:
-        fen = binary_to_float(
-          binary,
-          self._sub_populations[i].numbers_dict,
-          self._sub_populations[i].rng,
-          self._precision
-        )
-        floats.append(fen)
-      except:
-        pass
+    floats, _ = decode_binary_segments(
+      binaries,
+      self._sub_populations,
+      self._precision
+    )
 
     if len(floats) == 0:
       raise Exception('Something went wrong')
