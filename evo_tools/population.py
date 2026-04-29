@@ -371,31 +371,45 @@ class Population():
     for i, individual in enumerate(population_sample):
       individual.set_score(0)
       individual.set_objective_value(None)
-      chromosome = individual.get_binary()
+      objective_value = self._evaluate_individual_objective(individual, i)
 
-      if (self._print):
-        print(f'Chromosome {i}: {chromosome}')
-
-      gens, fens = self._decode_individual(individual)
-
-      if (self._print):
-        print(f'  gens: {gens}')
-        print(f'  fens: {fens}')
-
-      if len(gens) == len(fens):
-        objective_value = float(self._evaluate_function(fens))
+      if objective_value is not None:
         function_evaluations.append(objective_value)
         individual.set_objective_value(objective_value)
-
-        if self._print:
-          print(f'  fitness: {objective_value}\n')
-      elif self._print:
-        print(f'  fitness: Fail\n')
 
     if len(function_evaluations) == 0:
       return
 
     assign_scores(population_sample, function_evaluations, minimize)
+
+  def _evaluate_individual_objective(
+    self,
+    individual: Individual,
+    index: int
+  ) -> Union[float, None]:
+    chromosome = individual.get_binary()
+
+    if (self._print):
+      print(f'Chromosome {index}: {chromosome}')
+
+    gens, fens = self._decode_individual(individual)
+
+    if (self._print):
+      print(f'  gens: {gens}')
+      print(f'  fens: {fens}')
+
+    if len(gens) != len(fens):
+      if self._print:
+        print(f'  fitness: Fail\n')
+
+      return None
+
+    objective_value = float(self._evaluate_function(fens))
+
+    if self._print:
+      print(f'  fitness: {objective_value}\n')
+
+    return objective_value
 
   def _select_parents(
     self,
