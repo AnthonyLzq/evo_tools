@@ -299,26 +299,6 @@ class Population():
 
     self._best_individual = self._current_population[0]
 
-  def _parents_selection_by_fitness_proportionate(
-    self,
-    seed: float
-  ) -> List[Tuple[Individual, Individual]]:
-    return select_parents_by_fitness_proportionate(self._current_population, seed)
-
-  def _parents_selection_by_roulette(
-    self,
-    seed: float
-  ):
-    return select_parents_by_roulette(self._current_population, seed)
-
-  def _parents_selection_by_tournament(
-    self,
-    seed: float,
-    K: int,
-    minimize: bool
-  ):
-    return select_parents_by_tournament(self._current_population, seed, K, minimize)
-
   def _mutation(
     self,
     children: List[Individual],
@@ -364,7 +344,12 @@ class Population():
               gray,
               0,
               bits,
-              self._get_fen(binary, bits), # type: ignore
+              chromosome_to_numbers_repr(
+                binary,
+                bits,
+                self._sub_populations,
+                self._precision
+              ),
               self._parsed_function,
               self._variables_array.copy()
             )
@@ -452,13 +437,18 @@ class Population():
     minimize: bool
   ):
     if parent_selection_method == 'fitness_proportionate':
-      return self._parents_selection_by_fitness_proportionate(seed)
+      return select_parents_by_fitness_proportionate(self._current_population, seed)
 
     if parent_selection_method == 'roulette':
-      return self._parents_selection_by_roulette(seed)
+      return select_parents_by_roulette(self._current_population, seed)
 
     if parent_selection_method == 'tournament':
-      return self._parents_selection_by_tournament(seed, 10, minimize)
+      return select_parents_by_tournament(
+        self._current_population,
+        seed,
+        10,
+        minimize
+      )
 
     raise Exception('Parent selection method not allowed')
 
@@ -519,14 +509,6 @@ class Population():
     mutation_method
   ):
     validate_mutation_method(mutation_method)
-
-  def _get_fen(self, binary_or_gray: str, bits: List[int]):
-    return chromosome_to_numbers_repr(
-      binary_or_gray,
-      bits,
-      self._sub_populations,
-      self._precision
-    )
 
   def canonical_algorithm(
     self,

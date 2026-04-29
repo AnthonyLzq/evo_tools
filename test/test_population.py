@@ -3,6 +3,8 @@ from sympy import sympify
 from unittest.mock import patch
 
 from evo_tools.population import Population
+from evo_tools.selection import select_parents_by_fitness_proportionate, \
+  select_parents_by_roulette, select_parents_by_tournament
 
 def build_population(rng, precision, function = 'x', sample_size = None):
   domain_size = int(abs(rng[1] - rng[0]) / precision) + 1
@@ -50,7 +52,7 @@ def test_roulette_selection_probabilities_follow_maximization_scores() -> None:
     return np.array([[0, 1]])
 
   with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
-    population._parents_selection_by_roulette(1)
+    select_parents_by_roulette(population._current_population, 1)
 
   probabilities_by_objective = sorted(
     (individual.get_fitness(), captured['p'][index])
@@ -71,7 +73,7 @@ def test_fitness_proportionate_probabilities_follow_maximization_scores() -> Non
     return np.array([[0, 1]])
 
   with patch('evo_tools.selection.np.random.choice', side_effect = fake_choice):
-    population._parents_selection_by_fitness_proportionate(1)
+    select_parents_by_fitness_proportionate(population._current_population, 1)
 
   probabilities_by_objective = sorted(
     (individual.get_fitness(), captured['p'][index])
@@ -85,12 +87,14 @@ def test_tournament_selection_uses_raw_objective_values() -> None:
   current_population = population._get_current_population()
   population._fitness(current_population, False)
 
-  maximize_parents = population._parents_selection_by_tournament(
+  maximize_parents = select_parents_by_tournament(
+    population._current_population,
     1,
     len(current_population),
     False
   )
-  minimize_parents = population._parents_selection_by_tournament(
+  minimize_parents = select_parents_by_tournament(
+    population._current_population,
     1,
     len(current_population),
     True
