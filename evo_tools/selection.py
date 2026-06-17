@@ -78,6 +78,9 @@ def _generation_scores(population: List[Individual]) -> np.ndarray:
     dtype = float
   )
 
+def _uniform_probabilities(population_size: int) -> np.ndarray:
+  return np.full(population_size, 1 / population_size)
+
 def select_parents_by_fitness_proportionate(
   population: List[Individual],
   seed: float
@@ -100,11 +103,16 @@ def select_parents_by_roulette(
 ) -> List[Tuple[Individual, Individual]]:
   generation_scores = _generation_scores(population)
   generation_score = float(generation_scores.sum())
+  probabilities = (
+    _uniform_probabilities(len(population))
+    if generation_score == 0 else
+    generation_scores / generation_score
+  )
 
   return _select_parents_by_probabilities(
     population,
     seed,
-    generation_scores / generation_score
+    probabilities
   )
 
 def select_parents_by_tournament(

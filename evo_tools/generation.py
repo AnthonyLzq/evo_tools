@@ -13,9 +13,11 @@ def _compose_next_population(
   mutated_individuals: List[Individual],
   sample_size: int
 ) -> List[Individual]:
-  return current_population[
-    :len(current_population) - len(mutated_individuals)
-  ] + mutated_individuals[:sample_size]
+  current_survivor_count = max(sample_size - len(mutated_individuals), 0)
+  current_survivors = current_population[:current_survivor_count]
+  remaining_slots = sample_size - len(current_survivors)
+
+  return current_survivors + mutated_individuals[:remaining_slots]
 
 def select_next_generation(
   current_population: List[Individual],

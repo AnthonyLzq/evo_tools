@@ -3,6 +3,7 @@ from evo_tools import bin_gray
 from math import log, log2
 from scipy.spatial.distance import hamming
 from typing import Tuple, Union
+from unittest.mock import patch
 
 @pytest.mark.parametrize(
   'binary, integer',
@@ -79,6 +80,19 @@ def test_format_to_n_bits(
 )
 def test_mutate_binary_or_gray(binary: str, result: str, distance: int) -> None:
   assert hamming(list(binary), list(result)) * len(result) == distance
+
+def test_mutate_binary_or_gray_changes_two_unique_bits() -> None:
+  with patch(
+    'evo_tools.bin_gray.sample_without_replacement',
+    return_value = [0, 2]
+  ):
+    result = bin_gray.mutate_n_bits_from_binary_or_gray('1010', 2)
+
+  assert result == '0000'
+
+def test_mutate_binary_or_gray_rejects_more_bits_than_available() -> None:
+  with pytest.raises(ValueError, match = 'binary length'):
+    bin_gray.mutate_n_bits_from_binary_or_gray('10', 3)
 
 @pytest.mark.parametrize(
   'rng, precision, validate',

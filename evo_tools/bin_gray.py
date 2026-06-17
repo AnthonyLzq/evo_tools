@@ -1,7 +1,7 @@
 from math import log, log2
 from typing import Dict, List, Optional, Tuple, Union
 
-from evo_tools.randomness import randint_inclusive
+from evo_tools.randomness import randint_inclusive, sample_without_replacement
 
 def binary_to_int(b: str) -> int:
   """
@@ -248,15 +248,16 @@ def mutate_n_bits_from_binary_or_gray(b: str, n: int = 1) -> str:
   Returns:
     str: binary with n bits changed.
   """
-  length = len(b) - 1
-  new_b = ''
-  pos_bits = [randint_inclusive(0, length) for _ in range(0, n)]
+  if n < 0 or n > len(b):
+    raise ValueError('Number of bits to mutate must be between 0 and the binary length')
+
+  new_b = list(b)
+  pos_bits = sample_without_replacement(range(len(b)), n)
 
   for pos_bit in pos_bits:
-    new_bit = '0' if b[pos_bit] == '1' else '1'
-    new_b = b[:pos_bit] + new_bit + b[pos_bit + 1:]
+    new_b[pos_bit] = '0' if new_b[pos_bit] == '1' else '1'
 
-  return new_b
+  return ''.join(new_b)
 
 def mutation_binary_or_gray_by_flipping(b: str) -> str:
   """

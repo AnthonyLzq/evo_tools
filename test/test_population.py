@@ -1,8 +1,9 @@
 import numpy as np
+import pytest
 from sympy import Piecewise, symbols, sympify
 from unittest.mock import patch
 
-from evo_tools.generation import initialize_canonical_state
+from evo_tools.generation import _compose_next_population, initialize_canonical_state
 from evo_tools.initialization import select_initial_population
 from evo_tools.population import Population
 from evo_tools.scoring import rank_population
@@ -130,6 +131,20 @@ def test_select_initial_population_generated_lists_do_not_share_container() -> N
   assert len(initial_population) == population._sample_size
   assert len(current_population) == population._sample_size - 1
 
+def test_compose_next_population_keeps_sample_size_with_large_offspring_batch() -> None:
+  population = build_population((0, 9), 1)
+  current_population = population._current_population[:5]
+  mutated_individuals = population._current_population[5:] + population._current_population
+
+  next_population = _compose_next_population(
+    current_population,
+    mutated_individuals,
+    len(current_population)
+  )
+
+  assert len(next_population) == len(current_population)
+  assert next_population == mutated_individuals[:len(current_population)]
+
 def test_select_initial_population_reuses_existing_initial_population_list() -> None:
   population = build_population((0, 2), 1)
   initial_population, current_population = select_initial_population(
@@ -235,6 +250,26 @@ def test_roulette_selection_drops_duplicate_and_self_pairs() -> None:
     for first, second in parents
   } == expected_pairs
 
+def test_roulette_selection_uses_uniform_probabilities_when_scores_are_zero() -> None:
+  population = build_population((0, 2), 1)
+  captured = {}
+
+  for individual in population._current_population:
+    individual.set_score(0)
+
+  def fake_choice(population_size, pair_count, probabilities):
+    captured['p'] = probabilities.tolist()
+
+    return np.array([[0, 1]])
+
+  with patch(
+    'evo_tools.selection.sample_index_pairs_by_probabilities',
+    side_effect = fake_choice
+  ):
+    select_parents_by_roulette(population._current_population, 1)
+
+  assert captured['p'] == [1 / 3, 1 / 3, 1 / 3]
+
 def test_fitness_proportionate_selection_drops_duplicate_and_self_pairs() -> None:
   population = build_population((0, 11), 1)
   current_population = population._current_population.copy()
@@ -312,8 +347,9 @@ def test_population_sympifies_expression_without_string_roundtrip() -> None:
   expression = sympify('x + 1')
   captured = {}
 
-  def fake_sympify(value):
+  def fake_sympify(value, strict = False):
     captured['value'] = value
+    captured['strict'] = strict
 
     return value
 
@@ -328,6 +364,18 @@ def test_population_sympifies_expression_without_string_roundtrip() -> None:
     )
 
   assert captured['value'] is expression
+  assert captured['strict'] is True
+
+def test_population_rejects_string_objective_functions() -> None:
+  with pytest.raises(ValueError, match = 'SymPy expression'):
+    Population(
+      [(0, 2)],
+      1,
+      1,
+      0.01,
+      'x',
+      'x + 1'
+    )
 
 def test_canonical_algorithm_solves_reference_knapsack_case() -> None:
   weights = [10, 20, 30, 5, 15, 25, 7, 12, 18, 3]
