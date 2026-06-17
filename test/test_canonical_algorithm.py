@@ -1,6 +1,11 @@
 from unittest import skip
 from unittest.mock import patch
+from sympy import sympify
+
 from evo_tools import example
+from evo_tools.canonical import _genotype_unique_ratio, \
+  _has_best_objective_improved, _should_stop_early, finalize_canonical_result
+from evo_tools.models import Individual
 
 LINEAR_EQUATION = '2 * x + y - z - 3'
 
@@ -128,3 +133,51 @@ def test_canonical_algorithm_quadratic_2(a, b) -> None:
   )
   result = abs(result)
   assert round(result, 2) <= 31 * 31 and round(result, 2) >= 30 * 30  # type: ignore
+
+def test_finalize_canonical_result_uses_cached_numbers() -> None:
+  best_individual = Individual(
+    'invalid',
+    'invalid',
+    0,
+    [2],
+    '[2.0]',
+    sympify('x * x'),
+    ['x']
+  )
+
+  solution, function = finalize_canonical_result(
+    best_individual,
+    sympify('x * x'),
+    ['x'],
+    1,
+    0.0,
+    [4.0]
+  )
+
+  assert solution == {'x': 2.0}
+  assert float(function) == 4.0
+
+def test_best_objective_improvement_respects_direction_and_tolerance() -> None:
+  assert _has_best_objective_improved(0.99, 1.0, True, 0.001)
+  assert not _has_best_objective_improved(0.9995, 1.0, True, 0.001)
+  assert _has_best_objective_improved(1.01, 1.0, False, 0.001)
+  assert not _has_best_objective_improved(1.0005, 1.0, False, 0.001)
+
+def test_early_stopping_requires_min_iterations_and_patience() -> None:
+  assert not _should_stop_early(True, 3, 4, 10, 2)
+  assert not _should_stop_early(True, 4, 4, 1, 2)
+  assert _should_stop_early(True, 4, 4, 2, 2)
+  assert not _should_stop_early(False, 4, 4, 2, 2)
+
+def test_genotype_unique_ratio_counts_distinct_binaries() -> None:
+  population = [
+    Individual('00', '00', 0, [2], '[0.0]', sympify('x'), ['x']),
+    Individual('01', '01', 0, [2], '[1.0]', sympify('x'), ['x']),
+    Individual('01', '01', 0, [2], '[1.0]', sympify('x'), ['x'])
+  ]
+
+  assert _genotype_unique_ratio(population) == 2 / 3
+
+def test_diversity_aware_early_stopping_requires_low_diversity() -> None:
+  assert not _should_stop_early(True, 4, 4, 2, 2, True, 0.5, 0.25)
+  assert _should_stop_early(True, 4, 4, 2, 2, True, 0.25, 0.25)

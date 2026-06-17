@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Sequence
 from functools import reduce
 
-def sub_strings_by_array(s: str, l: List[int]) -> List[str]:
+def sub_strings_by_array(s: str, l: Sequence[int]) -> List[str]:
   """
   Function to split a string based in a list of sizes.
   For example, consider the following str: '101101101110'

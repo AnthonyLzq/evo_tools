@@ -4,59 +4,92 @@ This package has the goal to implement a general canonical [genetic algorithm](h
 
 ## Requirements
 
-- Python v3.10.7 (minimal)
-- Pip v22.3 (minimal)
+- Python 3.10+
+- pip
 
 ## Installation and usage
 
-### Third part library
+### Third-party library
 
-If you are using this package as a third part library, you only need to install it. For example with pip would be:
+If you want to use this package as a library, install it with pip:
 
 ```bash
 pip install evo-tools
 ```
 
-### Play locally
+### Local development
 
-If you want to install it locally and play around with it, please create a virtual environment, to do that you can run:
-
-```bash
-python -m venv venv
-```
-
-Then activate the virtual environment:
+Create a virtual environment:
 
 ```bash
-source venv/bin/activate
+python -m venv .venv
 ```
 
-Finally, install the dependencies with:
+Activate it:
+
+```bash
+source .venv/bin/activate
+```
+
+Install the package in editable mode:
 
 ```bash
 python -m pip install --editable .
 ```
 
+For day-to-day development with packaging and test tooling included:
+
+```bash
+python -m pip install --editable ".[dev]"
+```
+
 ### Testing
 
-#### Requirements
-
-- To have the dependencies installed.
-
-If you want to run all the tests available, you can run:
+Install the package with the test extra:
 
 ```bash
-pytest test -v
+python -m pip install --editable ".[test]"
 ```
 
-Then, you can run the tests for the bin_gray helpers running:
+Run the full test suite directly with pytest:
 
 ```bash
-test_bin_gray
+python -m pytest -q
 ```
 
-Or for the genectic algorithm:
+Run only the `bin_gray` helper tests with:
 
 ```bash
-test_algorithm
+python -m pytest test/test_bin_gray.py -q
+```
+
+Run only the canonical algorithm tests with:
+
+```bash
+python -m pytest test/test_canonical_algorithm.py -q
+```
+
+## Canonical algorithm configuration
+
+The canonical algorithm currently supports these parent selection methods:
+
+- `fitness_proportionate`
+- `roulette`
+- `tournament`
+
+These values are defined in `evo_tools.selection.PARENT_SELECTION_METHODS` and
+re-exported from `evo_tools`, so library consumers can import the supported
+options instead of relying on undocumented string literals.
+
+```python
+from evo_tools import PARENT_SELECTION_METHODS
+```
+
+It also exposes the supported crossover and mutation methods:
+
+- `CROSSOVER_METHODS`: `one_point`, `two_points`, `uniform`
+- `MUTATION_METHODS`: `one_point`, `two_points`, `flipping`
+
+```python
+from evo_tools import CROSSOVER_METHODS, MUTATION_METHODS
 ```

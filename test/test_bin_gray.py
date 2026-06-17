@@ -3,6 +3,7 @@ from evo_tools import bin_gray
 from math import log, log2
 from scipy.spatial.distance import hamming
 from typing import Tuple, Union
+from unittest.mock import patch
 
 @pytest.mark.parametrize(
   'binary, integer',
@@ -79,6 +80,19 @@ def test_format_to_n_bits(
 )
 def test_mutate_binary_or_gray(binary: str, result: str, distance: int) -> None:
   assert hamming(list(binary), list(result)) * len(result) == distance
+
+def test_mutate_binary_or_gray_changes_two_unique_bits() -> None:
+  with patch(
+    'evo_tools.bin_gray.sample_without_replacement',
+    return_value = [0, 2]
+  ):
+    result = bin_gray.mutate_n_bits_from_binary_or_gray('1010', 2)
+
+  assert result == '0000'
+
+def test_mutate_binary_or_gray_rejects_more_bits_than_available() -> None:
+  with pytest.raises(ValueError, match = 'binary length'):
+    bin_gray.mutate_n_bits_from_binary_or_gray('10', 3)
 
 @pytest.mark.parametrize(
   'rng, precision, validate',
@@ -203,3 +217,33 @@ def test_range_of_numbers_binary_and_gray(
   len_numbers = int((xf - x0) / precision + 1)
 
   assert len_numbers == len(numbers) and bits == calculated_bits
+
+def test_range_of_numbers_binary_and_gray_clips_requested_sample_size() -> None:
+  numbers, _ = bin_gray.range_of_numbers_binary_and_gray((0, 5), 0.1, 80)
+
+  assert len(numbers) == 51
+
+def test_range_of_numbers_binary_and_gray_sampled_output_keeps_range_bounds() -> None:
+  numbers, _ = bin_gray.range_of_numbers_binary_and_gray((0, 5), 0.1, 5)
+
+  assert numbers[0].startswith('0.0;')
+  assert numbers[-1].startswith('5.0;')
+  assert len(numbers) == 5
+
+@pytest.mark.parametrize(
+  'binary, rng, precision, expected',
+  [
+    ('0', (-1, 4), 0.01, '-1.00'),
+    ('1', (-1, 4), 0.01, '-0.99'),
+    ('111110100', (-1, 4), 0.01, '4.00'),
+    ('0', (2, 7), 0.1, '2.0'),
+    ('1', (2, 7), 0.1, '2.1')
+  ]
+)
+def test_binary_to_float_without_lookup_table(
+  binary: str,
+  rng: Tuple[Union[float, int], Union[float, int]],
+  precision: Union[float, int],
+  expected: str
+) -> None:
+  assert bin_gray.binary_to_float(binary, {}, rng, precision) == expected
