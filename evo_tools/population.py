@@ -152,7 +152,10 @@ class Population():
     EARLY_STOPPING = True,
     EARLY_STOPPING_MIN_ITERATIONS = 10,
     EARLY_STOPPING_PATIENCE = 10,
-    EARLY_STOPPING_TOLERANCE = 1e-6
+    EARLY_STOPPING_TOLERANCE = 1e-6,
+    DIVERSITY_EARLY_STOPPING = False,
+    DIVERSITY_METRIC = 'genotype_unique_ratio',
+    DIVERSITY_THRESHOLD = 0.05
   ) -> Tuple[List[float], Dict[str, float], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
@@ -191,6 +194,12 @@ class Population():
       tolerate before stopping. Defaults to 10.
       EARLY_STOPPING_TOLERANCE (float, optional): minimum objective improvement
       required to reset patience. Defaults to 1e-6.
+      DIVERSITY_EARLY_STOPPING (bool, optional): whether early stopping should
+      also require low population diversity. Defaults to False.
+      DIVERSITY_METRIC (str, optional): metric used for diversity-aware early
+      stopping. Defaults to 'genotype_unique_ratio'.
+      DIVERSITY_THRESHOLD (float, optional): maximum diversity ratio that allows
+      diversity-aware early stopping. Defaults to 0.05.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
@@ -211,7 +220,10 @@ class Population():
       EARLY_STOPPING,
       EARLY_STOPPING_MIN_ITERATIONS,
       EARLY_STOPPING_PATIENCE,
-      EARLY_STOPPING_TOLERANCE
+      EARLY_STOPPING_TOLERANCE,
+      DIVERSITY_EARLY_STOPPING,
+      DIVERSITY_METRIC,
+      DIVERSITY_THRESHOLD
     )
     seed_random_generators(RANDOM_SEED)
 
@@ -237,7 +249,10 @@ class Population():
         EARLY_STOPPING,
         EARLY_STOPPING_MIN_ITERATIONS,
         EARLY_STOPPING_PATIENCE,
-        EARLY_STOPPING_TOLERANCE
+        EARLY_STOPPING_TOLERANCE,
+        DIVERSITY_EARLY_STOPPING,
+        DIVERSITY_METRIC,
+        DIVERSITY_THRESHOLD
       )
 
     solution, function = finalize_canonical_result(

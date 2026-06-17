@@ -105,7 +105,10 @@ def canonical_algorithm(
   early_stopping = True,
   early_stopping_min_iterations = 10,
   early_stopping_patience = 10,
-  early_stopping_tolerance = 1e-6
+  early_stopping_tolerance = 1e-6,
+  diversity_early_stopping = False,
+  diversity_metric = 'genotype_unique_ratio',
+  diversity_threshold = 0.05
 ) -> Tuple[List[float], Dict[str, float], exp, List[float], float]:
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
@@ -141,7 +144,10 @@ def canonical_algorithm(
     EARLY_STOPPING = early_stopping,
     EARLY_STOPPING_MIN_ITERATIONS = early_stopping_min_iterations,
     EARLY_STOPPING_PATIENCE = early_stopping_patience,
-    EARLY_STOPPING_TOLERANCE = early_stopping_tolerance
+    EARLY_STOPPING_TOLERANCE = early_stopping_tolerance,
+    DIVERSITY_EARLY_STOPPING = diversity_early_stopping,
+    DIVERSITY_METRIC = diversity_metric,
+    DIVERSITY_THRESHOLD = diversity_threshold
   )
   end = time()
   spend_time = end - start

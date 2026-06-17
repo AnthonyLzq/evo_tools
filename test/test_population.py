@@ -514,3 +514,61 @@ def test_canonical_algorithm_rejects_invalid_early_stopping_parameters() -> None
 
   with pytest.raises(ValueError, match = 'PATIENCE'):
     population.canonical_algorithm(EARLY_STOPPING_PATIENCE = 0)
+
+def test_canonical_algorithm_diversity_gate_can_prevent_stalled_stop() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  _, _, _, fitness_avg = population.canonical_algorithm(
+    ITERATIONS = 6,
+    PARENT_SELECTION_METHOD = 'tournament',
+    RANDOM_SEED = 7,
+    EARLY_STOPPING_MIN_ITERATIONS = 2,
+    EARLY_STOPPING_PATIENCE = 1,
+    EARLY_STOPPING_TOLERANCE = 0,
+    DIVERSITY_EARLY_STOPPING = True,
+    DIVERSITY_THRESHOLD = 0
+  )
+
+  assert len(fitness_avg) == 6
+
+def test_canonical_algorithm_rejects_invalid_diversity_parameters() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  with pytest.raises(ValueError, match = 'DIVERSITY_THRESHOLD'):
+    population.canonical_algorithm(
+      DIVERSITY_EARLY_STOPPING = True,
+      DIVERSITY_THRESHOLD = 1.1
+    )
+
+def test_canonical_algorithm_rejects_diversity_without_early_stopping() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  with pytest.raises(ValueError, match = 'requires EARLY_STOPPING'):
+    population.canonical_algorithm(
+      EARLY_STOPPING = False,
+      DIVERSITY_EARLY_STOPPING = True
+    )

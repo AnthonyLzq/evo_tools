@@ -11,6 +11,9 @@ from evo_tools.phenotype import build_solution
 from evo_tools.reporting import print_final_summary, print_iteration_summary
 from evo_tools.selection import validate_parent_selection_method
 
+DIVERSITY_METRICS = (
+  'genotype_unique_ratio',
+)
 
 def validate_canonical_methods(
   parent_selection_method: str,
@@ -25,10 +28,19 @@ def validate_early_stopping_parameters(
   early_stopping: bool,
   min_iterations: int,
   patience: int,
-  tolerance: float
+  tolerance: float,
+  diversity_early_stopping: bool = False,
+  diversity_metric: str = 'genotype_unique_ratio',
+  diversity_threshold: float = 0.05
 ) -> None:
   if not isinstance(early_stopping, bool):
     raise ValueError('EARLY_STOPPING must be a boolean')
+
+  if not isinstance(diversity_early_stopping, bool):
+    raise ValueError('DIVERSITY_EARLY_STOPPING must be a boolean')
+
+  if diversity_early_stopping and not early_stopping:
+    raise ValueError('DIVERSITY_EARLY_STOPPING requires EARLY_STOPPING')
 
   if not early_stopping:
     return
@@ -41,6 +53,33 @@ def validate_early_stopping_parameters(
 
   if tolerance < 0:
     raise ValueError('EARLY_STOPPING_TOLERANCE must be non-negative')
+
+  if not diversity_early_stopping:
+    return
+
+  if diversity_metric not in DIVERSITY_METRICS:
+    raise ValueError('DIVERSITY_METRIC not allowed')
+
+  if diversity_threshold < 0 or diversity_threshold > 1:
+    raise ValueError('DIVERSITY_THRESHOLD must be between 0 and 1')
+
+def _genotype_unique_ratio(population: List[Individual]) -> float:
+  if len(population) == 0:
+    return 0.0
+
+  return len({
+    individual.get_binary()
+    for individual in population
+  }) / len(population)
+
+def _population_diversity_ratio(
+  population: List[Individual],
+  diversity_metric: str
+) -> float:
+  if diversity_metric == DIVERSITY_METRICS[0]:
+    return _genotype_unique_ratio(population)
+
+  raise ValueError('DIVERSITY_METRIC not allowed')
 
 def _has_best_objective_improved(
   current_objective: float,
@@ -75,13 +114,24 @@ def _should_stop_early(
   current_iteration: int,
   min_iterations: int,
   stalled_iterations: int,
-  patience: int
+  patience: int,
+  diversity_early_stopping: bool = False,
+  diversity_ratio: float = 0.0,
+  diversity_threshold: float = 0.0
 ) -> bool:
-  return (
+  should_stop_by_progress = (
     early_stopping and
     current_iteration >= min_iterations and
     stalled_iterations >= patience
   )
+
+  if not should_stop_by_progress:
+    return False
+
+  if not diversity_early_stopping:
+    return True
+
+  return diversity_ratio <= diversity_threshold
 
 def finalize_canonical_result(
   best_individual: Individual,
@@ -130,7 +180,10 @@ def run_canonical_algorithm(
   early_stopping: bool,
   early_stopping_min_iterations: int,
   early_stopping_patience: int,
-  early_stopping_tolerance: float
+  early_stopping_tolerance: float,
+  diversity_early_stopping: bool,
+  diversity_metric: str,
+  diversity_threshold: float
 ) -> Tuple[List[Individual], List[Individual], Individual, float, int, List[float], List[float]]:
   start = time()
   initial_population, current_population, best_individual, current_iteration, \
@@ -189,6 +242,11 @@ def run_canonical_algorithm(
       early_stopping_tolerance,
       stalled_iterations
     )
+    diversity_ratio = (
+      _population_diversity_ratio(current_population, diversity_metric)
+      if diversity_early_stopping else
+      0.0
+    )
     end = time()
 
     if _should_stop_early(
@@ -196,7 +254,10 @@ def run_canonical_algorithm(
       current_iteration,
       early_stopping_min_iterations,
       stalled_iterations,
-      early_stopping_patience
+      early_stopping_patience,
+      diversity_early_stopping,
+      diversity_ratio,
+      diversity_threshold
     ):
       break
 

@@ -3,8 +3,8 @@ from unittest.mock import patch
 from sympy import sympify
 
 from evo_tools import example
-from evo_tools.canonical import _has_best_objective_improved, \
-  _should_stop_early, finalize_canonical_result
+from evo_tools.canonical import _genotype_unique_ratio, \
+  _has_best_objective_improved, _should_stop_early, finalize_canonical_result
 from evo_tools.models import Individual
 
 LINEAR_EQUATION = '2 * x + y - z - 3'
@@ -168,3 +168,16 @@ def test_early_stopping_requires_min_iterations_and_patience() -> None:
   assert not _should_stop_early(True, 4, 4, 1, 2)
   assert _should_stop_early(True, 4, 4, 2, 2)
   assert not _should_stop_early(False, 4, 4, 2, 2)
+
+def test_genotype_unique_ratio_counts_distinct_binaries() -> None:
+  population = [
+    Individual('00', '00', 0, [2], '[0.0]', sympify('x'), ['x']),
+    Individual('01', '01', 0, [2], '[1.0]', sympify('x'), ['x']),
+    Individual('01', '01', 0, [2], '[1.0]', sympify('x'), ['x'])
+  ]
+
+  assert _genotype_unique_ratio(population) == 2 / 3
+
+def test_diversity_aware_early_stopping_requires_low_diversity() -> None:
+  assert not _should_stop_early(True, 4, 4, 2, 2, True, 0.5, 0.25)
+  assert _should_stop_early(True, 4, 4, 2, 2, True, 0.25, 0.25)
