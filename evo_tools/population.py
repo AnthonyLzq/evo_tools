@@ -3,7 +3,8 @@ from typing import Dict, List, Tuple, Union
 
 from evo_tools.canonical import finalize_canonical_result, \
   run_canonical_algorithm, \
-  validate_canonical_methods
+  validate_canonical_methods, \
+  validate_early_stopping_parameters
 from evo_tools.domain import build_sub_populations, validate_variable_count
 from evo_tools.models import Individual, SubPopulation
 from evo_tools.randomness import seed_random_generators
@@ -147,7 +148,11 @@ class Population():
     PARENT_SELECTION_METHOD = 'fitness_proportionate',
     CROSSOVER_METHOD = 'one_point',
     MUTATION_METHOD = 'one_point',
-    RANDOM_SEED = None
+    RANDOM_SEED = None,
+    EARLY_STOPPING = True,
+    EARLY_STOPPING_MIN_ITERATIONS = 10,
+    EARLY_STOPPING_PATIENCE = 10,
+    EARLY_STOPPING_TOLERANCE = 1e-6
   ) -> Tuple[List[float], Dict[str, float], exp, List[float]]:
     """
     Canonical algorithm that follows the following steps:
@@ -178,6 +183,14 @@ class Population():
       to 'one_point'.
       RANDOM_SEED (int | None, optional): seed applied to the internal NumPy
       random generator before the algorithm runs. Defaults to None.
+      EARLY_STOPPING (bool, optional): whether to stop when the best objective
+      stops improving. Defaults to True.
+      EARLY_STOPPING_MIN_ITERATIONS (int, optional): minimum number of
+      iterations to run before early stopping is allowed. Defaults to 10.
+      EARLY_STOPPING_PATIENCE (int, optional): number of stalled iterations to
+      tolerate before stopping. Defaults to 10.
+      EARLY_STOPPING_TOLERANCE (float, optional): minimum objective improvement
+      required to reset patience. Defaults to 1e-6.
 
     Raises:
       Exception: when a generation has a individual that is outside from all the
@@ -193,6 +206,12 @@ class Population():
       PARENT_SELECTION_METHOD,
       CROSSOVER_METHOD,
       MUTATION_METHOD
+    )
+    validate_early_stopping_parameters(
+      EARLY_STOPPING,
+      EARLY_STOPPING_MIN_ITERATIONS,
+      EARLY_STOPPING_PATIENCE,
+      EARLY_STOPPING_TOLERANCE
     )
     seed_random_generators(RANDOM_SEED)
 
@@ -214,7 +233,11 @@ class Population():
         CROSSOVER_METHOD,
         MUTATION_METHOD,
         self._crossover_rate,
-        self._mutation_rate
+        self._mutation_rate,
+        EARLY_STOPPING,
+        EARLY_STOPPING_MIN_ITERATIONS,
+        EARLY_STOPPING_PATIENCE,
+        EARLY_STOPPING_TOLERANCE
       )
 
     solution, function = finalize_canonical_result(

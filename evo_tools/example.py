@@ -101,7 +101,11 @@ def canonical_algorithm(
   parent_selection_method = 'fitness_proportionate',
   crossover_method = 'one_point',
   mutation_method = 'one_point',
-  random_seed = None
+  random_seed = None,
+  early_stopping = True,
+  early_stopping_min_iterations = 10,
+  early_stopping_patience = 10,
+  early_stopping_tolerance = 1e-6
 ) -> Tuple[List[float], Dict[str, float], exp, List[float], float]:
   variables, equation = generate_variables_and_equation()
   precision, ranges = generate_precision_and_ranges(variables)
@@ -126,14 +130,18 @@ def canonical_algorithm(
 
   start = time()
   scores, solution, result, fitness_avg = population.canonical_algorithm(
-    iterations,
-    minimize,
-    seed,
-    _print,
-    parent_selection_method,
-    crossover_method,
-    mutation_method,
-    random_seed
+    ITERATIONS = iterations,
+    MINIMIZE = minimize,
+    SEED = seed,
+    PRINT = _print,
+    PARENT_SELECTION_METHOD = parent_selection_method,
+    CROSSOVER_METHOD = crossover_method,
+    MUTATION_METHOD = mutation_method,
+    RANDOM_SEED = random_seed,
+    EARLY_STOPPING = early_stopping,
+    EARLY_STOPPING_MIN_ITERATIONS = early_stopping_min_iterations,
+    EARLY_STOPPING_PATIENCE = early_stopping_patience,
+    EARLY_STOPPING_TOLERANCE = early_stopping_tolerance
   )
   end = time()
   spend_time = end - start

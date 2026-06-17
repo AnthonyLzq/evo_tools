@@ -458,3 +458,59 @@ def test_canonical_algorithm_is_reproducible_with_random_seed() -> None:
   )
 
   assert first_result == second_result
+
+def test_canonical_algorithm_early_stopping_waits_for_min_iterations() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  _, _, _, fitness_avg = population.canonical_algorithm(
+    ITERATIONS = 10,
+    PARENT_SELECTION_METHOD = 'tournament',
+    RANDOM_SEED = 7,
+    EARLY_STOPPING_MIN_ITERATIONS = 4,
+    EARLY_STOPPING_PATIENCE = 2,
+    EARLY_STOPPING_TOLERANCE = 0
+  )
+
+  assert len(fitness_avg) == 4
+
+def test_canonical_algorithm_can_disable_early_stopping() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  _, _, _, fitness_avg = population.canonical_algorithm(
+    ITERATIONS = 6,
+    PARENT_SELECTION_METHOD = 'tournament',
+    RANDOM_SEED = 7,
+    EARLY_STOPPING = False
+  )
+
+  assert len(fitness_avg) == 6
+
+def test_canonical_algorithm_rejects_invalid_early_stopping_parameters() -> None:
+  population = Population(
+    [(0, 2)],
+    1,
+    1,
+    0,
+    'x',
+    sympify('0'),
+    sample_size = 3
+  )
+
+  with pytest.raises(ValueError, match = 'PATIENCE'):
+    population.canonical_algorithm(EARLY_STOPPING_PATIENCE = 0)

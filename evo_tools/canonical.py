@@ -21,6 +21,68 @@ def validate_canonical_methods(
   validate_crossover_method(crossover_method)
   validate_mutation_method(mutation_method)
 
+def validate_early_stopping_parameters(
+  early_stopping: bool,
+  min_iterations: int,
+  patience: int,
+  tolerance: float
+) -> None:
+  if not isinstance(early_stopping, bool):
+    raise ValueError('EARLY_STOPPING must be a boolean')
+
+  if not early_stopping:
+    return
+
+  if min_iterations < 1:
+    raise ValueError('EARLY_STOPPING_MIN_ITERATIONS must be at least 1')
+
+  if patience < 1:
+    raise ValueError('EARLY_STOPPING_PATIENCE must be at least 1')
+
+  if tolerance < 0:
+    raise ValueError('EARLY_STOPPING_TOLERANCE must be non-negative')
+
+def _has_best_objective_improved(
+  current_objective: float,
+  best_objective: float,
+  minimize: bool,
+  tolerance: float
+) -> bool:
+  if minimize:
+    return current_objective < best_objective - tolerance
+
+  return current_objective > best_objective + tolerance
+
+def _update_early_stopping_state(
+  current_objective: float,
+  best_objective: float,
+  minimize: bool,
+  tolerance: float,
+  stalled_iterations: int
+) -> Tuple[float, int]:
+  if _has_best_objective_improved(
+    current_objective,
+    best_objective,
+    minimize,
+    tolerance
+  ):
+    return current_objective, 0
+
+  return best_objective, stalled_iterations + 1
+
+def _should_stop_early(
+  early_stopping: bool,
+  current_iteration: int,
+  min_iterations: int,
+  stalled_iterations: int,
+  patience: int
+) -> bool:
+  return (
+    early_stopping and
+    current_iteration >= min_iterations and
+    stalled_iterations >= patience
+  )
+
 def finalize_canonical_result(
   best_individual: Individual,
   parsed_function,
@@ -64,7 +126,11 @@ def run_canonical_algorithm(
   crossover_method: str,
   mutation_method: str,
   crossover_rate: float,
-  mutation_rate: float
+  mutation_rate: float,
+  early_stopping: bool,
+  early_stopping_min_iterations: int,
+  early_stopping_patience: int,
+  early_stopping_tolerance: float
 ) -> Tuple[List[Individual], List[Individual], Individual, float, int, List[float], List[float]]:
   start = time()
   initial_population, current_population, best_individual, current_iteration, \
@@ -80,6 +146,8 @@ def run_canonical_algorithm(
       should_print
     )
   selection_strength = 0.0
+  best_objective = best_individual.get_fitness()
+  stalled_iterations = 0
   end = time()
 
   if should_print:
@@ -114,9 +182,22 @@ def run_canonical_algorithm(
       )
     scores.append(best_individual.get_score())
     fitness_avg_list.append(fitness_avg)
+    best_objective, stalled_iterations = _update_early_stopping_state(
+      best_individual.get_fitness(),
+      best_objective,
+      minimize,
+      early_stopping_tolerance,
+      stalled_iterations
+    )
     end = time()
 
-    if selection_strength <= 1e-4:
+    if _should_stop_early(
+      early_stopping,
+      current_iteration,
+      early_stopping_min_iterations,
+      stalled_iterations,
+      early_stopping_patience
+    ):
       break
 
     if should_print:

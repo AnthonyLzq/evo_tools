@@ -3,7 +3,8 @@ from unittest.mock import patch
 from sympy import sympify
 
 from evo_tools import example
-from evo_tools.canonical import finalize_canonical_result
+from evo_tools.canonical import _has_best_objective_improved, \
+  _should_stop_early, finalize_canonical_result
 from evo_tools.models import Individual
 
 LINEAR_EQUATION = '2 * x + y - z - 3'
@@ -155,3 +156,15 @@ def test_finalize_canonical_result_uses_cached_numbers() -> None:
 
   assert solution == {'x': 2.0}
   assert float(function) == 4.0
+
+def test_best_objective_improvement_respects_direction_and_tolerance() -> None:
+  assert _has_best_objective_improved(0.99, 1.0, True, 0.001)
+  assert not _has_best_objective_improved(0.9995, 1.0, True, 0.001)
+  assert _has_best_objective_improved(1.01, 1.0, False, 0.001)
+  assert not _has_best_objective_improved(1.0005, 1.0, False, 0.001)
+
+def test_early_stopping_requires_min_iterations_and_patience() -> None:
+  assert not _should_stop_early(True, 3, 4, 10, 2)
+  assert not _should_stop_early(True, 4, 4, 1, 2)
+  assert _should_stop_early(True, 4, 4, 2, 2)
+  assert not _should_stop_early(False, 4, 4, 2, 2)
